@@ -35,14 +35,11 @@ struct NES_Pulse {
     uint8_t length_counter_halt : 1;
     uint8_t constant_volume : 1;
     uint8_t volume : 4;
-
     uint8_t sweep : 1;
     uint8_t period : 3;
     uint8_t negate : 1;
     uint8_t shift : 3;
-
     uint8_t timer_lower : 8;
-
     uint8_t length_counter_load : 5;
     uint8_t timer_high : 3;
 };
@@ -61,13 +58,10 @@ struct NES_Noise {
     uint8_t length_counter_halt : 1;
     uint8_t constant_volume : 1;
     uint8_t volume : 4;
-
     uint8_t : 8;
-
     uint8_t loop_noise : 1;
     uint8_t : 3;
     uint8_t noise_period : 4;
-
     uint8_t length_counter_load : 5;
     uint8_t : 3;
 };
@@ -77,12 +71,9 @@ struct NES_Dmc {
     uint8_t loop : 1;
     uint8_t : 2;
     uint8_t freq : 4;
-
     uint8_t : 1;
     uint8_t load_counter : 7;
-
     uint8_t sample_address : 8;
-
     uint8_t sample_length : 8;
 };
 
@@ -127,6 +118,13 @@ enum NesScreenSize {
     NES_SCREEN_HEIGHT = 240,
 };
 
+struct NES_Colour { /* BGR555 */
+    uint8_t r : 5;
+    uint8_t g : 5;
+    uint8_t b : 5;
+    uint8_t a : 1; /* unused alpha channel, here for padding */
+};
+
 struct NES_Sprite {
     uint8_t y;
 
@@ -144,13 +142,6 @@ struct NES_Sprite {
     } attr;
     
     uint8_t x;
-};
-
-struct NES_Colour { /* bgr */
-    uint8_t r : 5;
-    uint8_t g : 5;
-    uint8_t b : 5;
-    uint8_t a : 1; /* unused, here for padding */
 };
 
 struct NES_Ppu {
@@ -189,13 +180,30 @@ struct NES_Ppu {
         uint8_t status;
     };
 
-    uint16_t addr;
+    uint16_t vram_addr : 14;
     uint8_t oam_addr;
-    uint8_t scroll;
-    uint8_t data;
-    uint8_t dma;
-    uint8_t latch;
-    uint8_t addr_inc_value;
+    
+    // this is the value written to by $2005 AND $2006 first write
+    uint8_t horizontal_scroll_origin;
+    // this s the second byte of $2005
+    uint8_t vertical_scroll_origin;
+
+    // cpu writes to $2005 and $2006 require two 8-bit values
+    // for the full value.
+    // this value is shared between both registers, and is reset after
+    // the second write and also after reading from $2000
+    // NOTE, it seems this value is actually stored in $2005 first write.
+    // does this mean that reading from the status register destroys this value?
+    uint8_t write_flipflop;
+    bool has_first_8bit : 1;
+
+    // cpu vram reads are buffered, so theres a 1-byte delay
+    uint8_t vram_latched_read;
+
+    // the vram is incremented by either 1 or 32 after each write.
+    // this value is set after the cpu writes to $2000
+    uint8_t vram_addr_increment : 6;
+    
     uint8_t pram[0x20]; /* palette ram */
     uint8_t oam[0x100]; /* object attribute memory */
     uint8_t vram[0x800]; /* video ram */
@@ -269,8 +277,8 @@ struct NES_INES2 {
 
 struct NES_CartHeader {
     uint8_t header_id[0x4];
-    uint8_t pgr_rom_size; /* x16k */
-    uint8_t chr_rom_size; /* x8k */
+    uint8_t pgr_rom_size; /* 16k */
+    uint8_t chr_rom_size; /* 8k */
 
     struct {
         uint8_t nametable_table : 1;
@@ -299,6 +307,7 @@ struct NES_Cart {
     
     uint8_t* pgr_rom;
     uint8_t* chr_rom;
+    uint8_t* base_rom; /* rom buffer passed into loadrom() */
 
     union {
         struct NES_Mapper_000 mapper_000;
@@ -320,15 +329,13 @@ struct NES_Cart {
     uint32_t pgr_ram_size;
     uint32_t chr_rom_size;
     uint32_t chr_ram_size;
-
-    uint8_t* base_rom; /* rom buffer passed into loadrom() */
 };
 /* CART END */
 
 struct NES_Cpu {
     uint16_t cycles;
     uint16_t PC; /* program counter */
-    uint8_t A; /* https : //youtu.be/dBK0gKW61NU?t=221 */
+    uint8_t A; /* https://youtu.be/dBK0gKW61NU?t=221 */
     uint8_t X; /* index X */
     uint8_t Y; /* index Y */
     uint8_t S; /* stack pointer */

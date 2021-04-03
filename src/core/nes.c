@@ -105,19 +105,23 @@ int NES_loadrom(struct NES_Core* nes, uint8_t* buffer, size_t size) {
     return NES_OK;
 }
 
-#define CPU_MAX_CYCLES (1789773/60)
-
+#define NES_CPU_CYCLES (1789773)
+#define NES_CPU_CYCLES_PER_FRAME (NES_CPU_CYCLES / 60)
 
 void NES_run_frame(struct NES_Core* nes) {
     assert(nes);
 
     uint32_t cycles = 0;
 
-    do {
+    while (cycles < NES_CPU_CYCLES_PER_FRAME) {
         NES_cpu_run(nes);
+
+        // the ppu is 3-times as fast the cpu, so we clock this
+        // 3 times.
+        NES_ppu_run(nes);
+        NES_ppu_run(nes);
         NES_ppu_run(nes);
 
         cycles += nes->cpu.cycles;
-
-    } while (cycles < CPU_MAX_CYCLES);
+    }
 }
