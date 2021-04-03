@@ -10,6 +10,7 @@
 #define REG_Y nes->cpu.Y
 #define REG_SP nes->cpu.S
 #define REG_P nes->cpu.P
+
 /* status flags */
 #define CARRY nes->cpu.status.C
 #define ZERO nes->cpu.status.Z
@@ -41,28 +42,31 @@
     oprand = read16(REG_PC); \
     REG_PC += 2; \
 } while(0)
+
 #define _ABSXY(reg) do { \
     ABS(); \
     PAGECROSS(oprand, reg); \
     oprand += reg; \
 } while(0)
+
 #define ABSX() do { _ABSXY(REG_X); } while(0)
 #define ABSY() do { _ABSXY(REG_Y); } while(0)
 
 #define ZP() do { oprand = read8(REG_PC++); } while(0)
-#define _ZPXY(reg) do { oprand = (read8(REG_PC++) + reg) & 0xFF; } while(0)
-#define ZPX() do { _ZPXY(REG_X); } while(0)
-#define ZPY() do { _ZPXY(REG_Y); } while(0)
+#define ZPX() do { oprand = (read8(REG_PC++) + REG_X) & 0xFF;; } while(0)
+#define ZPY() do { oprand = (read8(REG_PC++) + REG_Y) & 0xFF;; } while(0)
 
 #define IND() do { \
     oprand = read16(REG_PC); \
     REG_PC += 2; \
     oprand = (read8((oprand & 0xFF00) | ((oprand + 1) & 0xFF)) << 8) | read8(oprand); \
 } while(0)
+
 #define INDX() do { \
     oprand = read8(REG_PC++); \
     oprand = (read8((oprand + REG_X + 1) & 0xFF) << 8) | read8((oprand + REG_X) & 0xFF); \
 } while(0)
+
 #define INDY() do { \
     oprand = read8(REG_PC++); \
     oprand = ((read8((oprand + 1) & 0xFF) << 8) | read8(oprand)); \
@@ -81,6 +85,7 @@ static inline uint8_t _pop8(struct NES_Core* nes) { return read8(++REG_SP | 0x10
 static inline uint16_t _pop16(struct NES_Core* nes) { return (_pop8(nes)) | (_pop8(nes) << 8); }
 static inline void _push8(struct NES_Core* nes, uint8_t v) { write8(REG_SP-- | 0x100, v); }
 static inline void _push16(struct NES_Core* nes, uint16_t v) { _push8(nes, (v >> 8) & 0xFF); _push8(nes, v & 0xFF); }
+
 #define POP8() _pop8(nes)
 #define POP16() _pop16(nes)
 #define PUSH8(value)_push8(nes, value)
@@ -92,10 +97,12 @@ static inline void _push16(struct NES_Core* nes, uint16_t v) { _push8(nes, (v >>
     PUSH16(REG_PC - 1); \
     REG_PC = oprand; \
 } while(0)
+
 #define RTI() do { \
     REG_P = (POP8() & 0xEF) | 0x20; \
     REG_PC = POP16(); \
 } while(0)
+
 #define JMP() do { REG_PC = oprand; } while(0)
 #define RTS() do { REG_PC = POP16() + 1; } while(0)
 /*END: JUMPS*/
@@ -105,6 +112,7 @@ static inline void _push16(struct NES_Core* nes, uint16_t v) { _push8(nes, (v >>
     reg = read8(oprand); \
     SET_FLAGS_ZN(reg, reg); \
 } while(0)
+
 #define LDA() do { LOAD(REG_A); } while(0)
 #define LDX() do { LOAD(REG_X); } while(0)
 #define LDY() do { LOAD(REG_Y); } while(0)
@@ -141,6 +149,7 @@ static inline void _push16(struct NES_Core* nes, uint16_t v) { _push8(nes, (v >>
         nes->cpu.cycles += 1; \
     } \
 } while(0)
+
 #define BCC() BRANCH(!CARRY);
 #define BCS() BRANCH(CARRY);
 #define BNE() BRANCH(!ZERO);
@@ -162,6 +171,7 @@ static inline void _push16(struct NES_Core* nes, uint16_t v) { _push8(nes, (v >>
     REG_A = POP8(); \
     SET_FLAGS_ZN(REG_A, REG_A); \
 } while(0)
+
 #define PLP() do { REG_P = (POP8() & 0xEF) | 0x20; } while(0)
 #define PHA() do { PUSH8(REG_A); } while(0)
 #define PHP() do { PUSH8(REG_P | 0x10); } while(0)
@@ -178,6 +188,7 @@ static inline void _push16(struct NES_Core* nes, uint16_t v) { _push8(nes, (v >>
     oprand = (reg - oprand) & 0xFF; \
     SET_FLAGS_ZN(oprand, oprand); \
 } while(0)
+
 #define CMP() do { COMP(REG_A); } while(0)
 #define CPX() do { COMP(REG_X); } while(0)
 #define CPY() do { COMP(REG_Y); } while(0)
@@ -201,10 +212,12 @@ static inline void _push16(struct NES_Core* nes, uint16_t v) { _push8(nes, (v >>
     OVERFLOW = ((old_a ^ REG_A) & (oprand ^ REG_A) & 0x80) > 0; \
     SET_FLAGS_ZN(REG_A, REG_A); \
 } while(0)
+
 #define ADC() do { \
     oprand = read8(oprand); \
     ADCSBC(); \
 } while(0)
+
 #define SBC() do { \
     oprand = (read8(oprand) ^ 0xFF); \
     ADCSBC(); \
@@ -215,10 +228,12 @@ static inline void _push16(struct NES_Core* nes, uint16_t v) { _push8(nes, (v >>
     --reg; \
     SET_FLAGS_ZN(reg, reg); \
 } while(0)
+
 #define _INC(reg) do { \
     ++reg; \
     SET_FLAGS_ZN(reg, reg); \
 } while(0)
+
 #define DEX() do { _DEC(REG_X); } while(0)
 #define DEY() do { _DEC(REG_Y); } while(0)
 #define INX() do { _INC(REG_X); } while(0)
@@ -228,6 +243,7 @@ static inline void _push16(struct NES_Core* nes, uint16_t v) { _push8(nes, (v >>
     b = a; \
     SET_FLAGS_ZN(b, b); \
 } while(0)
+
 #define TAX() do { TRANSFER(REG_A, REG_X); } while(0)
 #define TXA() do { TRANSFER(REG_X, REG_A); } while(0)
 #define TAY() do { TRANSFER(REG_A, REG_Y); } while(0)
@@ -241,24 +257,24 @@ static inline void _push16(struct NES_Core* nes, uint16_t v) { _push8(nes, (v >>
     value = (value >> 1) | (old_carry << 7); \
     SET_FLAGS_ZN(value, value); \
 } while(0)
+
 #define ROR() do { \
     uint8_t value = read8(oprand); \
     _ROR(value); \
     write8(oprand, value); \
 } while(0)
-#define RORA() do { _ROR(REG_A); } while(0)
 
 #define _LSR(value) do { \
     CARRY = value & 1; \
     value >>= 1; \
     SET_FLAGS_ZN(value, 0); \
 } while(0)
+
 #define LSR() do { \
     uint8_t value = read8(oprand); \
     _LSR(value); \
     write8(oprand, value); \
 } while(0)
-#define LSRA() do { _LSR(REG_A); } while(0)
 
 #define _ROL(value) do { \
     const uint8_t old_carry = CARRY; \
@@ -266,23 +282,28 @@ static inline void _push16(struct NES_Core* nes, uint16_t v) { _push8(nes, (v >>
     value = (value << 1) | old_carry; \
     SET_FLAGS_ZN(value, value); \
 } while(0)
+
 #define ROL() do { \
     uint8_t value = read8(oprand); \
     _ROL(value); \
     write8(oprand, value); \
 } while(0)
-#define ROLA() do { _ROL(REG_A); } while(0)
 
 #define _ASL(value) do { \
     CARRY = (value & 0x80) == 0x80; \
     value <<= 1; \
     SET_FLAGS_ZN(value, value); \
 } while(0)
+
 #define ASL() do { \
     uint8_t value = read8(oprand); \
     _ASL(value); \
     write8(oprand, value); \
 } while(0)
+
+#define RORA() do { _ROR(REG_A); } while(0)
+#define LSRA() do { _LSR(REG_A); } while(0)
+#define ROLA() do { _ROL(REG_A); } while(0)
 #define ASLA() do { _ASL(REG_A); } while(0)
 
 #define INC() do { \
@@ -310,6 +331,7 @@ static inline void _push16(struct NES_Core* nes, uint16_t v) { _push8(nes, (v >>
 #define RLA() do { ROL(); AND(); } while(0)
 #define SRE() do { LSR(); EOR(); } while(0)
 #define RRA() do { ROR(); ADC(); } while(0)
+
 
 void NES_cpu_run(struct NES_Core* nes) {
     nes->cpu.cycles = 0;

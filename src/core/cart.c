@@ -35,8 +35,8 @@ static uint8_t NES_mapper_read_047(struct NES_Core* nes, uint16_t addr);
 static void NES_mapper_write_047(struct NES_Core* nes, uint16_t addr, uint8_t value);
 
 struct NES_MapperEntry {
-    uint8_t (*mapper_read)(struct NES_Core*, uint16_t);
-    void (*mapper_write)(struct NES_Core*, uint16_t, uint8_t);
+    uint8_t (*mapper_read)(struct NES_Core*, uint16_t addr);
+    void    (*mapper_write)(struct NES_Core*, uint16_t addr, uint8_t value);
 };
 
 static const struct NES_MapperEntry MAPPERS[0x100] = {
@@ -57,11 +57,14 @@ static const struct NES_MapperEntry MAPPERS[0x100] = {
 
 static int NES_mapper_init_000(struct NES_Core* nes) {
     memset(&nes->cart.mapper_000, 0, sizeof(nes->cart.mapper_000));
+    
     nes->cart.mapper_read = MAPPERS[0].mapper_read;
     nes->cart.mapper_write = MAPPERS[0].mapper_write;
+    
     /* prg rom banks */
     nes->cart.mapper_000.prg_rom_slots[0] = nes->cart.pgr_rom;
     nes->cart.mapper_000.prg_rom_slots[1] = nes->cart.pgr_rom_size == 0x4000 ? nes->cart.pgr_rom : nes->cart.pgr_rom + 0x4000;
+
     return NES_OK;
 }
 
