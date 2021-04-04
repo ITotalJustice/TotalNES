@@ -214,6 +214,10 @@ struct NES_Ppu {
 /* PPU END */
 
 /* CART START */
+enum NesMapperType {
+    NES_MAPPER_000,
+};
+
 struct NES_INES {
     struct {
         uint8_t pgr_ram_size;
@@ -300,11 +304,7 @@ struct NES_CartHeader {
     };
 };
 
-struct NES_Cart {
-    /* callbacks */
-    uint8_t (*mapper_read)(struct NES_Core*, uint16_t);
-    void (*mapper_write)(struct NES_Core*, uint16_t, uint8_t);
-    
+struct NES_Cart {   
     uint8_t* pgr_rom;
     uint8_t* chr_rom;
     uint8_t* base_rom; /* rom buffer passed into loadrom() */
@@ -324,6 +324,8 @@ struct NES_Cart {
         struct NES_Mapper_099 mapper_099;
         struct NES_Mapper_105 mapper_105;
     };
+
+    enum NesMapperType mapper_type;
 
     uint32_t pgr_rom_size;
     uint32_t pgr_ram_size;

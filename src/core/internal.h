@@ -58,10 +58,13 @@ extern "C" {
 
 struct NES_Core; // fwd
 
-bool NES_has_mapper(struct NES_Core* nes, uint8_t mapper);
+bool NES_has_mapper(const uint8_t mapper);
 int NES_mapper_setup(struct NES_Core* nes, uint8_t mapper);
 void NES_cpu_run(struct NES_Core* nes);
 void NES_ppu_run(struct NES_Core* nes);
+
+uint8_t NES_cart_read(struct NES_Core* nes, uint16_t addr);
+void NES_cart_write(struct NES_Core* nes, uint16_t addr, uint8_t value);
 
 uint8_t NES_cpu_read(struct NES_Core* nes, uint16_t addr);
 void NES_cpu_write(struct NES_Core* nes, uint16_t addr, uint8_t value);

@@ -255,7 +255,7 @@ uint8_t NES_cpu_read(struct NES_Core* nes, uint16_t addr) {
     }
     
     else if (addr >= 0x4020) { // cart
-        return nes->cart.mapper_read(nes, addr);
+        return NES_cart_read(nes, addr);
     }
     
     else {
@@ -280,7 +280,7 @@ void NES_cpu_write(struct NES_Core* nes, uint16_t addr, uint8_t value) {
     } 
     
     else if (addr >= 0x4020) { // cart
-        nes->cart.mapper_write(nes, addr, value);
+        NES_cart_write(nes, addr, value);
     }
     
     else {

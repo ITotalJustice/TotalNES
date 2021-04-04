@@ -39,7 +39,7 @@ int NES_is_header_valid(struct NES_Core* nes, const struct NES_CartHeader* heade
     }
 
     const uint8_t mapper_num = (header->flag7.mapper_num_hi << 4) | header->flag6.mapper_num_lo;
-    if (NES_OK != NES_has_mapper(nes, mapper_num)) {
+    if (NES_OK != NES_has_mapper(mapper_num)) {
         NES_log_err("MISSING MAPPER: %u\n", mapper_num);
         return NES_UNSUPORTED_MAPPER;
     }
@@ -78,7 +78,7 @@ int NES_loadrom(struct NES_Core* nes, uint8_t* buffer, size_t size) {
     
     const uint8_t mapper_num = (header->flag7.mapper_num_hi << 4) | header->flag6.mapper_num_lo;
     
-    if (NES_OK != NES_has_mapper(nes, mapper_num)) {
+    if (NES_OK != NES_has_mapper(mapper_num)) {
         NES_log_err("MISSING MAPPER: %u\n", mapper_num);
         return NES_UNSUPORTED_MAPPER;
     }
