@@ -82,7 +82,7 @@
 
 /*START: STACK HELPERS*/
 static inline uint8_t _pop8(struct NES_Core* nes) { return read8(++REG_SP | 0x100); }
-static inline uint16_t _pop16(struct NES_Core* nes) { return (_pop8(nes)) | (_pop8(nes) << 8); }
+static inline uint16_t _pop16(struct NES_Core* nes) { const uint8_t lo = _pop8(nes); return lo | (_pop8(nes) << 8); }
 static inline void _push8(struct NES_Core* nes, uint8_t v) { write8(REG_SP-- | 0x100, v); }
 static inline void _push16(struct NES_Core* nes, uint16_t v) { _push8(nes, (v >> 8) & 0xFF); _push8(nes, v & 0xFF); }
 
