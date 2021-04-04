@@ -12,7 +12,8 @@ void NES_reset(struct NES_Core* nes) {
     nes->cpu.Y = 0;
     nes->cpu.S = 0xFD;
     /* for nestest */
-    nes->cpu.PC = 0xC000;
+    // nes->cpu.PC = 0xC000;
+    nes->cpu.PC = 0;
 
     nes->cpu.status.I = 1;
     nes->cpu.status.D = 0;
@@ -39,7 +40,7 @@ int NES_is_header_valid(struct NES_Core* nes, const struct NES_CartHeader* heade
     }
 
     const uint8_t mapper_num = (header->flag7.mapper_num_hi << 4) | header->flag6.mapper_num_lo;
-    if (NES_OK != NES_has_mapper(mapper_num)) {
+    if (!NES_has_mapper(mapper_num)) {
         NES_log_err("MISSING MAPPER: %u\n", mapper_num);
         return NES_UNSUPORTED_MAPPER;
     }
@@ -78,7 +79,7 @@ int NES_loadrom(struct NES_Core* nes, uint8_t* buffer, size_t size) {
     
     const uint8_t mapper_num = (header->flag7.mapper_num_hi << 4) | header->flag6.mapper_num_lo;
     
-    if (NES_OK != NES_has_mapper(mapper_num)) {
+    if (!NES_has_mapper(mapper_num)) {
         NES_log_err("MISSING MAPPER: %u\n", mapper_num);
         return NES_UNSUPORTED_MAPPER;
     }
@@ -87,13 +88,15 @@ int NES_loadrom(struct NES_Core* nes, uint8_t* buffer, size_t size) {
     const uint32_t pgr_rom_size = header->pgr_rom_size * 0x4000;
     const uint32_t chr_rom_size = header->chr_rom_size * 0x2000;
 
+    NES_log("rom size is 0x%llX\n", size);
+    NES_log("header size is 0x%llX\n", sizeof(struct NES_CartHeader));
     NES_log("pgr_rom: 0x%X\n", pgr_rom_size);
     NES_log("chr_rom: 0x%X\n", chr_rom_size);
 
     /* seek past header and trainer (if any). */
     rom += sizeof(struct NES_CartHeader) + (header->flag6.trainer * 0x200);
 
-    NES_log("loaded!\n\n");
+    NES_log("loaded! trainer size %u\n\n", header->flag6.trainer);
 
     nes->cart.pgr_rom = rom;
     nes->cart.chr_rom = rom + pgr_rom_size;
@@ -101,6 +104,9 @@ int NES_loadrom(struct NES_Core* nes, uint8_t* buffer, size_t size) {
     nes->cart.chr_rom_size = chr_rom_size;
 
     NES_mapper_setup(nes, mapper_num);
+
+    // sload from the reset vector
+    nes->cpu.PC = NES_cpu_read16(nes, NES_VECTOR_RESET);
 
     return NES_OK;
 }
@@ -118,10 +124,10 @@ void NES_run_frame(struct NES_Core* nes) {
 
         // the ppu is 3-times as fast the cpu, so we clock this
         // 3 times.
-        NES_ppu_run(nes);
-        NES_ppu_run(nes);
-        NES_ppu_run(nes);
+        NES_ppu_run(nes, nes->cpu.cycles);
+        NES_ppu_run(nes, nes->cpu.cycles);
+        NES_ppu_run(nes, nes->cpu.cycles);
 
-        cycles += nes->cpu.cycles;
+        cycles += nes->cpu.cycles + 1;
     }
 }

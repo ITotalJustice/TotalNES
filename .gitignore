@@ -55,3 +55,11 @@ dkms.conf
 roms/
 .vscode
 build/
+
+# msvc
+TotalNES/.vs
+TotalNES/Debug/
+TotalNES/x64/
+TotalNES/packages/
+TotalNES/TotalNES/Debug
+TotalNES/TotalNES/x64

@@ -18,7 +18,7 @@ static bool read_file(const char* path, uint8_t* out_buf, size_t* out_size) {
 	}
 
 	fseek(f, 0, SEEK_END);
-	ssize_t size = ftell(f);
+	long size = ftell(f);
 	fseek(f, 0, SEEK_SET);
 
 	if (size <= 0) {
@@ -32,6 +32,41 @@ static bool read_file(const char* path, uint8_t* out_buf, size_t* out_size) {
 	return true;
 }
 
+struct SDL_Ctx {
+	SDL_Window* window;
+	SDL_Renderer* renderer;
+	SDL_Texture* texture;
+};
+
+#define SCALE 3
+static struct SDL_Ctx create_sdl_ctx(const char* name, int x, int y, int w, int h, uint32_t format) {
+	struct SDL_Ctx ctx = {0};
+	
+	ctx.window = SDL_CreateWindow(name, x, y, w * SCALE, h * SCALE, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
+	ctx.renderer = SDL_CreateRenderer(ctx.window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+	ctx.texture = SDL_CreateTexture(ctx.renderer, format, SDL_TEXTUREACCESS_STREAMING, w, h);
+
+	return ctx;
+}
+
+static void destroy_sdl_ctx(struct SDL_Ctx* ctx) {
+	SDL_DestroyTexture(ctx->texture);
+	SDL_DestroyRenderer(ctx->renderer);
+	SDL_DestroyWindow(ctx->window);
+}
+
+static void update_ctx(struct SDL_Ctx* ctx, const void* new_pixels, size_t size) {
+	void* pixles; int pitch;
+	SDL_LockTexture(ctx->texture, NULL, &pixles, &pitch);
+	memcpy(pixles, new_pixels, size);
+	SDL_UnlockTexture(ctx->texture);
+}
+
+static void render_ctx(struct SDL_Ctx* ctx) {
+	SDL_RenderClear(ctx->renderer);
+	SDL_RenderCopy(ctx->renderer, ctx->texture, NULL, NULL);
+	SDL_RenderPresent(ctx->renderer);
+}
 
 int main(int argc, char** argv) {
     if (argc < 2) {
@@ -51,35 +86,50 @@ int main(int argc, char** argv) {
 
     SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS);
 
-	SDL_Window* window = SDL_CreateWindow("TotalNES", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, NES_SCREEN_WIDTH, NES_SCREEN_HEIGHT, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
-    SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
-	SDL_Texture* texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_BGR555, SDL_TEXTUREACCESS_STREAMING, NES_SCREEN_WIDTH, NES_SCREEN_HEIGHT);
-	SDL_SetWindowMinimumSize(window, NES_SCREEN_WIDTH, NES_SCREEN_HEIGHT);
-    SDL_ShowCursor(SDL_DISABLE);
+
+	struct SDL_Ctx core_sdl_ctx = create_sdl_ctx("TotalNES", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, NES_SCREEN_WIDTH, NES_SCREEN_HEIGHT, SDL_PIXELFORMAT_BGR555);
+	struct SDL_Ctx pattern0_sdl_ctx = create_sdl_ctx("Pattern Table 0", 0, SDL_WINDOWPOS_CENTERED, 128, 128, SDL_PIXELFORMAT_RGB888);
+	struct SDL_Ctx pattern1_sdl_ctx = create_sdl_ctx("Pattern Table 1", 1280 - (1280/10), SDL_WINDOWPOS_CENTERED, 128, 128, SDL_PIXELFORMAT_RGB888);
 
     bool quit = false;
+	uint8_t pallete_num = 0;
 
     while (!quit) {
         SDL_Event e;
 		while (SDL_PollEvent(&e)) {
 			if (e.type == SDL_QUIT) quit = true;
+
+			if (e.type == SDL_KEYDOWN) {
+				// bool down = e.type == SDL_KEYDOWN;
+
+				switch (e.key.keysym.sym) {
+					case SDLK_1:
+						pallete_num++;
+						break;
+				}
+			}
 		}
 
 		NES_run_frame(&nes_core);
 
-		void* pixles; int pitch;
-        SDL_LockTexture(texture, NULL, &pixles, &pitch);
-		memcpy(pixles, nes_core.ppu.pixels, sizeof(nes_core.ppu.pixels));
-		SDL_UnlockTexture(texture);
+		update_ctx(&core_sdl_ctx, nes_core.ppu.pixels, sizeof(nes_core.ppu.pixels));
+		render_ctx(&core_sdl_ctx);
 
-		SDL_RenderClear(renderer);
-		SDL_RenderCopy(renderer, texture, NULL, NULL);
-		SDL_RenderPresent(renderer);
-    }
+		struct NES_PatternTableGfx pattern0 = NES_ppu_get_pattern_table(&nes_core, 0, pallete_num);
+		struct NES_PatternTableGfx pattern1 = NES_ppu_get_pattern_table(&nes_core, 1, pallete_num);
+    
+		update_ctx(&pattern0_sdl_ctx, pattern0.pixels, sizeof(pattern0.pixels));
+		render_ctx(&pattern0_sdl_ctx);
 
-    SDL_DestroyTexture(texture);
-	SDL_DestroyRenderer(renderer);
-	SDL_DestroyWindow(window);
+		update_ctx(&pattern1_sdl_ctx, pattern1.pixels, sizeof(pattern1.pixels));
+		render_ctx(&pattern1_sdl_ctx);
+		
+	}
+
+	destroy_sdl_ctx(&core_sdl_ctx);
+	destroy_sdl_ctx(&pattern0_sdl_ctx);
+	destroy_sdl_ctx(&pattern1_sdl_ctx);
+
 	SDL_Quit();
 
 

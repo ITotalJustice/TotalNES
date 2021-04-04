@@ -56,12 +56,21 @@ extern "C" {
 #endif // NES_DEBUG
 
 
+enum NesInterruptVector {
+    NES_VECTOR_NMI      = 0xFFFA,
+    NES_VECTOR_RESET    = 0xFFFC,
+    NES_VECTOR_IRQ      = 0xFFFE,
+    NES_VECTOR_BRK      = 0xFFFE,
+};
+
+
 struct NES_Core; // fwd
+
 
 bool NES_has_mapper(const uint8_t mapper);
 int NES_mapper_setup(struct NES_Core* nes, uint8_t mapper);
 void NES_cpu_run(struct NES_Core* nes);
-void NES_ppu_run(struct NES_Core* nes);
+void NES_ppu_run(struct NES_Core* nes, const uint16_t cycles_elapsed);
 
 uint8_t NES_cart_read(struct NES_Core* nes, uint16_t addr);
 void NES_cart_write(struct NES_Core* nes, uint16_t addr, uint8_t value);
@@ -75,6 +84,7 @@ void NES_dma(struct NES_Core* nes);
 uint8_t NES_ppu_read(struct NES_Core* nes, uint16_t addr);
 void NES_ppu_write(struct NES_Core* nes, uint16_t addr, uint8_t value);
 
+void NES_cpu_nmi(struct NES_Core* nes);
 
 #ifdef __cplusplus
 }

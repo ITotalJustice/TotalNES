@@ -1,6 +1,7 @@
 #include "core/nes.h"
 #include "core/internal.h"
 
+#include <stdio.h>
 #include <assert.h>
 
 
@@ -54,7 +55,7 @@ static inline uint8_t NES_cpu_io_read(struct NES_Core* nes, uint8_t addr) {
             // this uses unions / structs to the addr can just be
             // indexed as an array.
             // this is a bad idea long term, but for now it's good enough!
-            data = nes->apu.io[addr];
+            data = nes->apu.io[addr & 0x1F];
             break;
         
         case 0x14:
@@ -62,7 +63,7 @@ static inline uint8_t NES_cpu_io_read(struct NES_Core* nes, uint8_t addr) {
             break;
         
         case 0x15:
-            data = nes->apu.io[addr];
+            data = nes->apu.io[addr & 0x1F];
             nes->apu.status.frame_irq = 0;
             break;
 
@@ -74,7 +75,9 @@ static inline uint8_t NES_cpu_io_read(struct NES_Core* nes, uint8_t addr) {
             data = 0xFF;
             break;
 
-        default: NES_UNREACHABLE(0xFF);
+        default:
+            assert(0 && "invalid IO read");
+            NES_UNREACHABLE(0xFF);
     }
 
     return data;
@@ -87,7 +90,7 @@ static inline void NES_cpu_io_write(struct NES_Core* nes, uint8_t addr, uint8_t 
         case 0x08: case 0x09: case 0x0A: case 0x0B:
         case 0x0C: case 0x0D: case 0x0E: case 0x0F:
         case 0x10: case 0x11: case 0x12: case 0x13:
-            nes->apu.io[addr] = value;
+            nes->apu.io[addr & 0x1F] = value;
             break;
         
         case 0x14:
@@ -96,7 +99,7 @@ static inline void NES_cpu_io_write(struct NES_Core* nes, uint8_t addr, uint8_t 
             break;
 
         case 0x15:
-            nes->apu.io[addr] = value;
+            nes->apu.io[addr & 0x1F] = value;
             if (!nes->apu.status.pulse1) nes->apu.pulse1.length_counter_load = 0;
             if (!nes->apu.status.pulse2) nes->apu.pulse2.length_counter_load = 0;
             if (!nes->apu.status.triangle) nes->apu.triangle.length_counter_load = 0;
@@ -107,7 +110,7 @@ static inline void NES_cpu_io_write(struct NES_Core* nes, uint8_t addr, uint8_t 
             break;
         
         case 0x17:
-            nes->apu.io[addr] = value;
+            nes->apu.io[addr & 0x1F] = value;
             break;
     }
 }
@@ -135,6 +138,11 @@ static inline uint8_t NES_ppu_register_read(struct NES_Core* nes, uint8_t addr) 
             data = nes->ppu.vram_latched_read;
             // save the new value
             nes->ppu.vram_latched_read = NES_ppu_read(nes, nes->ppu.vram_addr);
+            // palettes aren't delayed
+            if (nes->ppu.vram_addr > 0x3F000) {
+                data = nes->ppu.vram_latched_read;
+            }
+            ++nes->ppu.vram_addr;
             break;
         
         /* write only regs return current latched value. */
@@ -208,6 +216,7 @@ static inline void NES_ppu_register_write(struct NES_Core* nes, uint8_t addr, ui
             if (nes->ppu.has_first_8bit) {
                 // set the new vram addr
                 nes->ppu.vram_addr = (nes->ppu.write_flipflop << 8) | value;
+                assert(nes->ppu.vram_addr <= 0x3FFF);
                 // reset the write_flipflop
                 nes->ppu.write_flipflop = 0;
                 nes->ppu.has_first_8bit = false;
@@ -222,8 +231,10 @@ static inline void NES_ppu_register_write(struct NES_Core* nes, uint8_t addr, ui
             break;
 
         case 0x7:
-            NES_ppu_register_write(nes, nes->ppu.vram_addr, value);
-            nes->ppu.vram_addr += nes->ppu.vram_addr_increment;
+            // printf("ppu write 0x%04X\n", nes->ppu.vram_addr);
+            NES_ppu_write(nes, nes->ppu.vram_addr, value);
+            // nes->ppu.vram_addr += nes->ppu.vram_addr_increment;
+            nes->ppu.vram_addr++;
             break;
     }
 }
@@ -247,7 +258,7 @@ uint8_t NES_cpu_read(struct NES_Core* nes, uint16_t addr) {
     }
     
     else if (addr >= 0x2000 && addr <= 0x3FFF) { // ppu reg
-        return NES_ppu_register_read(nes, addr & 0x7);
+        return NES_ppu_register_read(nes, addr);
     }
     
     else if (addr >= 0x4000 && addr <= 0x4017) { // io

@@ -204,6 +204,10 @@ struct NES_Ppu {
     // this value is set after the cpu writes to $2000
     uint8_t vram_addr_increment : 6;
     
+    uint16_t cycles; // 0-341
+    int16_t next_cycles;
+    int16_t scaline; // -1 - 261
+
     uint8_t pram[0x20]; /* palette ram */
     uint8_t oam[0x100]; /* object attribute memory */
     uint8_t vram[0x800]; /* video ram */

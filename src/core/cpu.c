@@ -333,6 +333,15 @@ static inline void _push16(struct NES_Core* nes, uint16_t v) { _push8(nes, (v >>
 #define RRA() do { ROR(); ADC(); } while(0)
 
 
+void NES_cpu_nmi(struct NES_Core* nes) {
+    // save the pc
+    PUSH16(REG_PC);
+    // save the current status
+    PUSH8(nes->cpu.P);
+    // read from nmi vector
+    REG_PC = read16(NES_VECTOR_NMI);
+}
+
 void NES_cpu_run(struct NES_Core* nes) {
     nes->cpu.cycles = 0;
 
