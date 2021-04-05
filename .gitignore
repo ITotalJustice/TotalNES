@@ -55,6 +55,8 @@ dkms.conf
 roms/
 .vscode
 build/
+*.raw
+audio_samples/
 
 # msvc
 TotalNES/.vs

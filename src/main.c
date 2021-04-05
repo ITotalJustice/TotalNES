@@ -105,36 +105,23 @@ int main(int argc, char** argv) {
         exit(-1);
     }
 
+	// saves audio to disk (sample.raw)
+	SDL_setenv("SDL_AUDIODRIVER", "disk", 1);
+
     SDL_Init(SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_EVENTS);
 
 	const SDL_AudioSpec wanted = {
         /* .freq = */ 48000,
         /* .format = */ AUDIO_S8,
-#ifdef CHANNEL_8
-        /* .channels = */ 4,
-#else
         /* .channels = */ 1,
-#endif
         /* .silence = */ 0, // calculated
-        /* .samples = */ 512, // 512 * 2 (because stereo)
+        /* .samples = */ 512,
         /* .padding = */ 0,
         /* .size = */ 0, // calculated
-#ifdef GB_SDL_AUDIO_CALLBACK_STREAM
-        /* .callback = */ audio_stream_callback,
-        /* .userdata = */ this
-#else
         /* .callback = */ NULL,
         /* .userdata = */ NULL
-#endif // GB_SDL_AUDIO_CALLBACK
     };
     SDL_AudioSpec obtained = {0};
-
-#ifdef GB_SDL_AUDIO_CALLBACK_STREAM
-    AUDIO_STREAM = SDL_NewAudioStream(
-        AUDIO_S8, 1, 4213440/4,
-        AUDIO_S8, 1, 48000
-    );
-#endif
 
     AUDIO_DEVICE_ID = SDL_OpenAudioDevice(NULL, 0, &wanted, &obtained, 0);
     // check if an audio device was failed to be found...
@@ -152,7 +139,7 @@ int main(int argc, char** argv) {
 
         SDL_PauseAudioDevice(AUDIO_DEVICE_ID, 0);
     }
-
+	
 	// set the audio callback
 	NES_set_apu_callback(&nes_core, core_apu_callback, NULL);
 
@@ -165,7 +152,7 @@ int main(int argc, char** argv) {
 	uint8_t pallete_num = 0;
 
     while (!quit) {
-        SDL_Event e;
+		SDL_Event e;
 		while (SDL_PollEvent(&e)) {
 			if (e.type == SDL_QUIT) quit = true;
 
