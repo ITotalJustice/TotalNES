@@ -16,6 +16,15 @@ source = files([
     'src/core/cpu.c',
     'src/core/nes.c',
     'src/core/ppu.c',
+    'src/core/joypad.c',
+    'src/core/apu/apu.c',
+    'src/core/apu/apu_io.c',
+    'src/core/apu/square1.c',
+    'src/core/apu/square2.c',
+    'src/core/apu/triangle.c',
+    'src/core/apu/noise.c',
+    'src/core/apu/dmc.c',
+    
 
     # used for testing
     'src/main.c',

@@ -147,14 +147,23 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\src\core\apu\apu.c" />
+    <ClCompile Include="..\..\src\core\apu\apu_io.c" />
+    <ClCompile Include="..\..\src\core\apu\dmc.c" />
+    <ClCompile Include="..\..\src\core\apu\noise.c" />
+    <ClCompile Include="..\..\src\core\apu\square1.c" />
+    <ClCompile Include="..\..\src\core\apu\square2.c" />
+    <ClCompile Include="..\..\src\core\apu\triangle.c" />
     <ClCompile Include="..\..\src\core\bus.c" />
     <ClCompile Include="..\..\src\core\cart.c" />
     <ClCompile Include="..\..\src\core\cpu.c" />
+    <ClCompile Include="..\..\src\core\joypad.c" />
     <ClCompile Include="..\..\src\core\nes.c" />
     <ClCompile Include="..\..\src\core\ppu.c" />
     <ClCompile Include="..\..\src\main.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\src\core\apu\apu.h" />
     <ClInclude Include="..\..\src\core\internal.h" />
     <ClInclude Include="..\..\src\core\mappers.h" />
     <ClInclude Include="..\..\src\core\nes.h" />

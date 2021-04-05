@@ -52,27 +52,19 @@ static inline uint8_t NES_cpu_io_read(struct NES_Core* nes, uint8_t addr) {
         case 0x08: case 0x09: case 0x0A: case 0x0B:
         case 0x0C: case 0x0D: case 0x0E: case 0x0F:
         case 0x10: case 0x11: case 0x12: case 0x13:
-            // this uses unions / structs to the addr can just be
-            // indexed as an array.
-            // this is a bad idea long term, but for now it's good enough!
-            data = nes->apu.io[addr & 0x1F];
-            break;
+        case 0x15:
+            return NES_apu_io_read(nes, addr);
         
         case 0x14:
             data = nes->ppu.oam_addr;
             break;
-        
-        case 0x15:
-            data = nes->apu.io[addr & 0x1F];
-            nes->apu.status.frame_irq = 0;
-            break;
 
         case 0x16: /* controller 1 */
-            data = 0xFF;
+            data = NES_joypad_read_port_0(nes);
             break;
         
         case 0x17: /* controller 2 */
-            data = 0xFF;
+            data = 0x00;
             break;
 
         default:
@@ -90,32 +82,22 @@ static inline void NES_cpu_io_write(struct NES_Core* nes, uint8_t addr, uint8_t 
         case 0x08: case 0x09: case 0x0A: case 0x0B:
         case 0x0C: case 0x0D: case 0x0E: case 0x0F:
         case 0x10: case 0x11: case 0x12: case 0x13:
-            nes->apu.io[addr & 0x1F] = value;
+        case 0x15: case 0x17:
+            NES_apu_io_write(nes, addr, value);
             break;
         
         case 0x14:
             nes->ppu.oam_addr = value;
             NES_dma(nes);
             break;
-
-        case 0x15:
-            nes->apu.io[addr & 0x1F] = value;
-            if (!nes->apu.status.pulse1) nes->apu.pulse1.length_counter_load = 0;
-            if (!nes->apu.status.pulse2) nes->apu.pulse2.length_counter_load = 0;
-            if (!nes->apu.status.triangle) nes->apu.triangle.length_counter_load = 0;
-            if (!nes->apu.status.noise) nes->apu.noise.length_counter_load = 0;
-            break;
         
         case 0x16: /* strobe */
-            break;
-        
-        case 0x17:
-            nes->apu.io[addr & 0x1F] = value;
+            nes->jp.shift = 0;
             break;
     }
 }
 
-static inline uint8_t NES_ppu_register_read(struct NES_Core* nes, uint8_t addr) {
+static inline uint8_t NES_ppu_register_read(struct NES_Core* nes, uint16_t addr) {
     uint8_t data;
 
     switch (addr & 0x7) {
@@ -154,7 +136,7 @@ static inline uint8_t NES_ppu_register_read(struct NES_Core* nes, uint8_t addr) 
     return data;
 }
 
-static inline void NES_ppu_register_write(struct NES_Core* nes, uint8_t addr, uint8_t value) {
+static inline void NES_ppu_register_write(struct NES_Core* nes, uint16_t addr, uint8_t value) {
     switch (addr & 0x07) {
         case 0x0:
             nes->ppu.ctrl = value;

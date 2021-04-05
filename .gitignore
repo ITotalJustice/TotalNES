@@ -59,7 +59,9 @@ build/
 # msvc
 TotalNES/.vs
 TotalNES/Debug/
+TotalNES/Release
 TotalNES/x64/
 TotalNES/packages/
 TotalNES/TotalNES/Debug
+TotalNES/TotalNES/Release
 TotalNES/TotalNES/x64

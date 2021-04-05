@@ -56,6 +56,21 @@ extern "C" {
 #endif // NES_DEBUG
 
 
+enum NesClocks {
+    // 21mhz (in hz)
+    NES_MASTER_CLOCK = 21477270,
+    
+    // ~1.79mhz (in hz)
+    NES_CPU_CYCLES = NES_MASTER_CLOCK / 12,
+
+    NES_CPU_CYCLES_PER_FRAME = NES_CPU_CYCLES / 60,
+
+    NES_APU_FRAME_SEQUENCER_CLOCK = NES_MASTER_CLOCK / 89490,
+
+    NES_APU_FRAME_SEQUENCER_STEP_RATE = NES_CPU_CYCLES / NES_APU_FRAME_SEQUENCER_CLOCK,
+};
+
+
 enum NesInterruptVector {
     NES_VECTOR_NMI      = 0xFFFA,
     NES_VECTOR_RESET    = 0xFFFC,
@@ -69,8 +84,10 @@ struct NES_Core; // fwd
 
 bool NES_has_mapper(const uint8_t mapper);
 int NES_mapper_setup(struct NES_Core* nes, uint8_t mapper);
+
 void NES_cpu_run(struct NES_Core* nes);
 void NES_ppu_run(struct NES_Core* nes, const uint16_t cycles_elapsed);
+void NES_apu_run(struct NES_Core* nes, const uint16_t cycles_elapsed);
 
 uint8_t NES_cart_read(struct NES_Core* nes, uint16_t addr);
 void NES_cart_write(struct NES_Core* nes, uint16_t addr, uint8_t value);
@@ -85,6 +102,12 @@ uint8_t NES_ppu_read(struct NES_Core* nes, uint16_t addr);
 void NES_ppu_write(struct NES_Core* nes, uint16_t addr, uint8_t value);
 
 void NES_cpu_nmi(struct NES_Core* nes);
+
+uint8_t NES_joypad_read_port_0(struct NES_Core* nes);
+
+uint8_t NES_apu_io_read(struct NES_Core* nes, const uint16_t addr);
+void NES_apu_io_write(struct NES_Core* nes, const uint16_t addr, const uint8_t value);
+
 
 #ifdef __cplusplus
 }

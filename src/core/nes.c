@@ -11,9 +11,7 @@ void NES_reset(struct NES_Core* nes) {
     nes->cpu.X = 0;
     nes->cpu.Y = 0;
     nes->cpu.S = 0xFD;
-    /* for nestest */
-    // nes->cpu.PC = 0xC000;
-    nes->cpu.PC = 0;
+    nes->cpu.PC = 0; // this gets set when the rom is loaded
 
     nes->cpu.status.I = 1;
     nes->cpu.status.D = 0;
@@ -111,8 +109,10 @@ int NES_loadrom(struct NES_Core* nes, uint8_t* buffer, size_t size) {
     return NES_OK;
 }
 
-#define NES_CPU_CYCLES (1789773)
-#define NES_CPU_CYCLES_PER_FRAME (NES_CPU_CYCLES / 60)
+void NES_set_apu_callback(struct NES_Core* nes, NES_apu_callback_t cb, void* user_data) {
+    nes->apu_cb = cb;
+    nes->apu_cb_user_data = user_data;
+}
 
 void NES_run_frame(struct NES_Core* nes) {
     assert(nes);
@@ -122,12 +122,15 @@ void NES_run_frame(struct NES_Core* nes) {
     while (cycles < NES_CPU_CYCLES_PER_FRAME) {
         NES_cpu_run(nes);
 
-        // the ppu is 3-times as fast the cpu, so we clock this
-        // 3 times.
-        NES_ppu_run(nes, nes->cpu.cycles);
-        NES_ppu_run(nes, nes->cpu.cycles);
-        NES_ppu_run(nes, nes->cpu.cycles);
+        // the ppu is 3-times as fast the cpu, so we clock this 3 times.
+        for (uint16_t i = 0; i < nes->cpu.cycles; ++i) {
+            NES_ppu_run(nes, nes->cpu.cycles);
+            NES_ppu_run(nes, nes->cpu.cycles);
+            NES_ppu_run(nes, nes->cpu.cycles);
+        }
+        
+        NES_apu_run(nes, nes->cpu.cycles);
 
-        cycles += nes->cpu.cycles + 1;
+        cycles += nes->cpu.cycles;
     }
 }

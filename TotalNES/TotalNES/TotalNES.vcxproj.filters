@@ -22,6 +22,12 @@
     <Filter Include="Header Files\core\tables">
       <UniqueIdentifier>{6cc1da68-da92-4dd5-90be-afcef73c199a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\core\apu">
+      <UniqueIdentifier>{e333d818-3128-4619-aeb2-cba454abeb13}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\core\apu">
+      <UniqueIdentifier>{113f8b20-d3d4-464f-b379-4f2f57e1755a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\core\bus.c">
@@ -42,6 +48,30 @@
     <ClCompile Include="..\..\src\main.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\core\apu\apu.c">
+      <Filter>Source Files\core\apu</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\apu\apu_io.c">
+      <Filter>Source Files\core\apu</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\apu\noise.c">
+      <Filter>Source Files\core\apu</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\apu\square1.c">
+      <Filter>Source Files\core\apu</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\apu\square2.c">
+      <Filter>Source Files\core\apu</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\apu\triangle.c">
+      <Filter>Source Files\core\apu</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\joypad.c">
+      <Filter>Source Files\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\apu\dmc.c">
+      <Filter>Source Files\core\apu</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\core\internal.h">
@@ -61,6 +91,9 @@
     </ClInclude>
     <ClInclude Include="..\..\src\core\tables\opcode_info_table.h">
       <Filter>Header Files\core\tables</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\apu\apu.h">
+      <Filter>Header Files\core\apu</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

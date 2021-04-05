@@ -30,84 +30,62 @@ struct NES_Core;
 
 
 /* APU START */
-struct NES_Pulse {
-    uint8_t duty : 2;
-    uint8_t length_counter_halt : 1;
-    uint8_t constant_volume : 1;
+struct NES_Square {
     uint8_t volume : 4;
-    uint8_t sweep : 1;
-    uint8_t period : 3;
-    uint8_t negate : 1;
-    uint8_t shift : 3;
-    uint8_t timer_lower : 8;
-    uint8_t length_counter_load : 5;
-    uint8_t timer_high : 3;
-};
-
-struct NES_Triangle {
-    uint8_t length_counter_halt : 1;
-    uint8_t linear_counter_load : 7;
-    uint8_t : 8;
-    uint8_t timer_low : 8;
-    uint8_t length_counter_load : 5;
-    uint8_t timer_high : 3;
-};
-
-struct NES_Noise {
-    uint8_t : 2;
-    uint8_t length_counter_halt : 1;
     uint8_t constant_volume : 1;
-    uint8_t volume : 4;
-    uint8_t : 8;
-    uint8_t loop_noise : 1;
-    uint8_t : 3;
-    uint8_t noise_period : 4;
-    uint8_t length_counter_load : 5;
-    uint8_t : 3;
+    uint8_t length_counter_halt : 1;
+    uint8_t duty : 2; // 0-3
+
+    uint8_t sweep_shift : 3;
+    uint8_t sweep_negate : 1;
+    uint8_t sweep_period : 3;
+    uint8_t sweep_enabled : 1;
+
+    uint8_t duty_index : 3; // 0-7
+
+    uint16_t freq;
+
+    int16_t timer;
+    int16_t sweep_counter;
+    int16_t length_counter;
+    int8_t envelope_counter;
 };
 
-struct NES_Dmc {
-    uint8_t irq_enable : 1;
-    uint8_t loop : 1;
-    uint8_t : 2;
-    uint8_t freq : 4;
-    uint8_t : 1;
-    uint8_t load_counter : 7;
-    uint8_t sample_address : 8;
-    uint8_t sample_length : 8;
+struct NES_ApuCallbackData {
+	int8_t samples[512 * 1];
 };
 
 struct NES_Apu {
-    union {
-        uint8_t io[0x18];
+    // reading from apu io returns the last written value
+    // because of this, it is stored in an array
+    uint8_t io[0x18];
 
-        struct {
-            struct NES_Pulse pulse1;
-            struct NES_Pulse pulse2;
-            struct NES_Triangle triangle;
-            struct NES_Noise noise;
-            uint8_t _pad0[1];
-            
-            struct {
-                uint8_t dmc_irq : 1;
-                uint8_t frame_irq : 1;
-                uint8_t : 1;
-                uint8_t enable_dmc : 1;
-                uint8_t noise : 1;
-                uint8_t triangle : 1;
-                uint8_t pulse2 : 1;
-                uint8_t pulse1 : 1;
-            } status;
+    struct NES_Square square1;
+    struct NES_Square square2;
 
-            uint8_t _pad1[1];
-            
-            struct {
-                uint8_t mode : 1;
-                uint8_t irq : 1;
-                uint8_t : 6;
-            } frame_counter;
-        };
-    };
+    struct {
+        uint8_t dmc_irq : 1;
+        uint8_t frame_irq : 1;
+        uint8_t dmc_enable : 1;
+        uint8_t noise_enable : 1;
+        uint8_t triangle_enable : 1;
+        uint8_t square2_enable : 1;
+        uint8_t square1_enable : 1;
+    } status;
+
+    struct {
+        uint8_t mode : 1;
+        uint8_t irq_enable : 1;
+
+        // either 0-4 or o-5 depending on the mode
+        uint8_t step : 3;
+
+        int16_t timer;
+    } frame_sequencer;
+
+    int16_t sample_cycles;
+    uint16_t sample_index;
+    struct NES_ApuCallbackData sample_data;
 };
 /* APU END */
 
@@ -361,9 +339,14 @@ struct NES_Cpu {
 };
 
 struct NES_Joypad {
-    uint8_t a;
-    uint8_t b;
+    uint8_t shift;
+    uint8_t buttons; // which buttons are down etc
+
+    uint8_t a; // $4016
+    uint8_t b; // $4017
 };
+
+typedef void(*NES_apu_callback_t)(struct NES_Core* nes, void* user, struct NES_ApuCallbackData* data);
 
 struct NES_Core {
     struct NES_Cpu cpu;
@@ -372,6 +355,9 @@ struct NES_Core {
     struct NES_Joypad jp;
     struct NES_Cart cart;
     uint8_t ram[0x800]; // 2kb
+
+    NES_apu_callback_t apu_cb;
+    void* apu_cb_user_data;
 };
 
 
