@@ -5,8 +5,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+
+#ifdef _MSC_VER
+#include <SDL.h>
+#include <SDL_audio.h>
+#else
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_audio.h>
+#endif // _MSC_VER
 
 
 static uint8_t ROM_BUFFER[0x400000]; // 4MiB
