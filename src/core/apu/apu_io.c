@@ -15,7 +15,7 @@ uint8_t NES_apu_io_read(struct NES_Core* nes, const uint16_t addr) {
             data = nes->apu.io[addr & 0x1F] & ~(0xF);
             data |= (SQUARE1_CHANNEL.length_counter > 0) << 0;
             data |= (SQUARE2_CHANNEL.length_counter > 0) << 1;
-            data |= (TRIANGLE_CHANNEL.length_counter > 0) << 2;
+            data |= ((TRIANGLE_CHANNEL.length_counter > 0) && (TRIANGLE_CHANNEL.linear_counter_load > 0)) << 2;
             data |= (NOISE_CHANNEL.length_counter > 0) << 3;
             nes->apu.status.frame_irq = 0;
             break;
@@ -81,6 +81,8 @@ void NES_apu_io_write(struct NES_Core* nes, const uint16_t addr, const uint8_t v
 
     // [TRIANGLE]
         case 0x08:
+            TRIANGLE_CHANNEL.linear_counter_load = value & 0x7F;
+            TRIANGLE_CHANNEL.length_counter_halt = (value >> 7) & 0x1;
             break;
 
         case 0x0A:

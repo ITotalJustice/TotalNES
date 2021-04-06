@@ -30,7 +30,14 @@ void clock_triangle_length(struct NES_Core* nes) {
 }
 
 void clock_triangle_linear(struct NES_Core* nes) {
+    if (!is_triangle_length_enabled(nes)) {
+        return;
+    }
 
+    if (TRIANGLE_CHANNEL.linear_counter_load > 0) {
+        // otherwise we clock it
+        --TRIANGLE_CHANNEL.linear_counter_load;
+    }
 }
 
 void clock_triangle_duty(struct NES_Core* nes) {
@@ -38,7 +45,7 @@ void clock_triangle_duty(struct NES_Core* nes) {
 }
 
 int8_t sample_triangle(const struct NES_Core* nes) {
-    if (TRIANGLE_CHANNEL.length_counter == 0) {
+    if (TRIANGLE_CHANNEL.length_counter == 0 || TRIANGLE_CHANNEL.linear_counter_load == 0) {
         return 0;
     }
 
