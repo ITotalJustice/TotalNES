@@ -20,7 +20,7 @@ bool is_square2_sweep_enabled(const struct NES_Core* nes) {
 }
 
 uint16_t get_square2_freq(const struct NES_Core* nes) {
-    return SQUARE2_CHANNEL.freq;
+    return SQUARE2_CHANNEL.timer_reload;
 }
 
 void clock_square2_length(struct NES_Core* nes) {
@@ -94,7 +94,7 @@ void clock_square2_sweep(struct NES_Core* nes) {
             }
             else {
                 // otherwise set the new value!
-                SQUARE2_CHANNEL.freq = new_freq;
+                SQUARE2_CHANNEL.timer_reload = new_freq;
             }
         }
     }

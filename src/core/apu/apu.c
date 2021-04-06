@@ -31,6 +31,22 @@ const uint16_t NOISE_TIMER_TABLE[0x10] = {
     0x0CA, 0x0FE, 0x17C, 0x1FC, 0x2FA, 0x3F8, 0x7F2, 0xFE4,
 };
 
+// const int8_t TRIANGLE_DUTY_TABLE[0x20] = {
+//     0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+//     0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F,
+//     0x0F, 0x0E, 0x0D, 0x0C, 0x0B, 0x0A, 0x09, 0x08,
+//     0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01, 0x00
+// };
+
+// this is the volume for the triangle
+// the table isn't accurate yet, just oprox, need to correct it more
+// for signed values
+const int8_t TRIANGLE_DUTY_TABLE[0x20] = {
+    -7, -6, -5, -4, -3, -2, -1, -0,
+    +1, +2, +3, +4, +5, +6, +7, +8,
+    +8, +7, +6, +5, +4, +3, +2, +1,
+    +0, -1, -2, -3, -4, -5, -6, -7
+};
 
 static void on_clock_irq(struct NES_Core* nes) {
     // todo: fire actual IRQ
@@ -42,14 +58,17 @@ static void on_clock_irq(struct NES_Core* nes) {
 static void on_clock_length_and_sweep(struct NES_Core* nes) {
     clock_square1_length(nes);
     clock_square2_length(nes);
+    clock_triangle_length(nes);
+
     clock_square1_sweep(nes);
     clock_square2_sweep(nes);
 }
 
 static void on_clock_envelope_and_linear_counter(struct NES_Core* nes) {
-    // todo:
     clock_square1_envelope(nes);
     clock_square2_envelope(nes);
+
+    clock_triangle_linear(nes);
 }
 
 static void frame_sequencer_clock(struct NES_Core* nes) {
@@ -110,13 +129,16 @@ static void frame_sequencer_clock(struct NES_Core* nes) {
 }
 
 static void sample(struct NES_Core* nes) {
-    const int8_t square1_sample = sample_square1(nes);// * is_square1_enabled(nes);
-    const int8_t square2_sample = sample_square2(nes);// * is_square2_enabled(nes);
+    const int8_t square1_sample = sample_square1(nes) * is_square1_enabled(nes);
+    const int8_t square2_sample = sample_square2(nes) * is_square2_enabled(nes);
+    const int8_t triangle_sample = sample_triangle(nes) * is_triangle_enabled(nes);
 
-#if 0
-    const int8_t final = square1_sample;
+#define MODE 3
+
+#if MODE == 3
+    const int8_t final = triangle_sample;
 #else
-    const int8_t final = ((square1_sample) + (square2_sample)) / 2;
+    const int8_t final = ((square1_sample) + (square2_sample) + (triangle_sample)) / 3;
 #endif
 
     APU.sample_data.samples[APU.sample_index] = final;
@@ -148,6 +170,12 @@ void NES_apu_run(struct NES_Core* nes, const uint16_t cycles_elapsed) {
     if (SQUARE2_CHANNEL.timer <= 0) {
         SQUARE2_CHANNEL.timer += get_square2_freq(nes) << 1;
         SQUARE2_CHANNEL.duty_index++;
+    }
+
+    TRIANGLE_CHANNEL.timer -= cycles_elapsed;
+    if (TRIANGLE_CHANNEL.timer <= 0) {
+        TRIANGLE_CHANNEL.timer += get_triangle_freq(nes);
+        TRIANGLE_CHANNEL.duty_index++;
     }
 
     APU.frame_sequencer.timer -= cycles_elapsed;

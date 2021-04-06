@@ -43,12 +43,44 @@ struct NES_Square {
 
     uint8_t duty_index : 3; // 0-7
 
-    uint16_t freq;
+    uint16_t timer_reload;
 
     int16_t timer;
     int16_t sweep_counter;
     int16_t length_counter;
     int8_t envelope_counter;
+};
+
+struct NES_Triangle {
+    uint8_t linear_counter_load : 7;
+    uint8_t length_counter_halt : 1;
+
+    uint8_t duty_index : 5; // 0-31
+
+    uint16_t timer_reload;
+
+    int16_t timer;
+    int16_t length_counter;
+};
+
+struct NES_Status {
+    uint8_t dmc_irq : 1;
+    uint8_t frame_irq : 1;
+    uint8_t dmc_enable : 1;
+    uint8_t noise_enable : 1;
+    uint8_t triangle_enable : 1;
+    uint8_t square2_enable : 1;
+    uint8_t square1_enable : 1;
+};
+
+struct NES_FrameSequencer {
+    uint8_t mode : 1;
+    uint8_t irq_enable : 1;
+
+    // either 0-4 or o-5 depending on the mode
+    uint8_t step : 3;
+
+    int16_t timer;
 };
 
 struct NES_ApuCallbackData {
@@ -62,26 +94,10 @@ struct NES_Apu {
 
     struct NES_Square square1;
     struct NES_Square square2;
+    struct NES_Triangle triangle;
 
-    struct {
-        uint8_t dmc_irq : 1;
-        uint8_t frame_irq : 1;
-        uint8_t dmc_enable : 1;
-        uint8_t noise_enable : 1;
-        uint8_t triangle_enable : 1;
-        uint8_t square2_enable : 1;
-        uint8_t square1_enable : 1;
-    } status;
-
-    struct {
-        uint8_t mode : 1;
-        uint8_t irq_enable : 1;
-
-        // either 0-4 or o-5 depending on the mode
-        uint8_t step : 3;
-
-        int16_t timer;
-    } frame_sequencer;
+    struct NES_Status status;
+    struct NES_FrameSequencer frame_sequencer;
 
     int16_t sample_cycles;
     uint16_t sample_index;

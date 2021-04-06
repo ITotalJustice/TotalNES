@@ -53,15 +53,15 @@ void NES_apu_io_write(struct NES_Core* nes, const uint16_t addr, const uint8_t v
             SQUARE1_CHANNEL.sweep_enabled = value >> 7;
             SQUARE1_CHANNEL.sweep_period = (value >> 4) & 0x7;
             SQUARE1_CHANNEL.sweep_negate = value >> 3;
-            SQUARE1_CHANNEL.sweep_shift = value & 0x7; 
+            SQUARE1_CHANNEL.sweep_shift = value & 0x7;
             break;
-        
+
         case 0x02:
-            SQUARE1_CHANNEL.freq = (SQUARE1_CHANNEL.freq & 0xFF00) | value; 
+            SQUARE1_CHANNEL.timer_reload = (SQUARE1_CHANNEL.timer_reload & 0xFF00) | value;
             break;
 
         case 0x03:
-            SQUARE1_CHANNEL.freq = (SQUARE1_CHANNEL.freq & 0xFF) | ((value & 0x7) << 8); 
+            SQUARE1_CHANNEL.timer_reload = (SQUARE1_CHANNEL.timer_reload & 0xFF) | ((value & 0x7) << 8);
             SQUARE1_CHANNEL.length_counter = LENGTH_COUNTER_TABLE[(value >> 3)];
             break;
 
@@ -77,36 +77,58 @@ void NES_apu_io_write(struct NES_Core* nes, const uint16_t addr, const uint8_t v
             SQUARE2_CHANNEL.sweep_enabled = value >> 7;
             SQUARE2_CHANNEL.sweep_period = (value >> 4) & 0x7;
             SQUARE2_CHANNEL.sweep_negate = value >> 3;
-            SQUARE2_CHANNEL.sweep_shift = value & 0x7; 
+            SQUARE2_CHANNEL.sweep_shift = value & 0x7;
             break;
-        
+
         case 0x06:
-            SQUARE2_CHANNEL.freq = (SQUARE2_CHANNEL.freq & 0xFF00) | value; 
+            SQUARE2_CHANNEL.timer_reload = (SQUARE2_CHANNEL.timer_reload & 0xFF00) | value;
             break;
 
         case 0x07:
-            SQUARE2_CHANNEL.freq = (SQUARE2_CHANNEL.freq & 0xFF) | ((value & 0x7) << 8); 
+            SQUARE2_CHANNEL.timer_reload = (SQUARE2_CHANNEL.timer_reload & 0xFF) | ((value & 0x7) << 8);
             SQUARE2_CHANNEL.length_counter = LENGTH_COUNTER_TABLE[(value >> 3)];
             break;
 
-
-        // case 0x0B:
-        //     nes->apu.triangle_length_counter = LENGTH_COUNTER_TABLE[nes->apu.triangle.length_counter_load];
-        //     break;
-
-        // case 0x0F:
-        //     nes->apu.noise_length_counter = LENGTH_COUNTER_TABLE[nes->apu.noise.length_counter_load];
-        //     break;
-
-        // this is dmc 4th reg
-        // case 0x13:
-        //     break;
-
-        case 0x08: case 0x09: case 0x0A:
-        case 0x0C: case 0x0D: case 0x0E:
-        case 0x10: case 0x11: case 0x12:
+    // [TRIANGLE]
+        case 0x08:
             break;
-        
+
+        case 0x0A:
+            TRIANGLE_CHANNEL.timer_reload = (TRIANGLE_CHANNEL.timer_reload & 0xFF00) | value;
+            break;
+
+        case 0x0B:
+            TRIANGLE_CHANNEL.timer_reload = (TRIANGLE_CHANNEL.timer_reload & 0xFF) | ((value & 0x7) << 8);
+            TRIANGLE_CHANNEL.length_counter = LENGTH_COUNTER_TABLE[(value >> 3)];
+            break;
+
+    // [NOISE]
+        case 0x0C:
+            break;
+
+        case 0x0D:
+            break;
+
+        case 0x0E:
+            break;
+
+        case 0x0F:
+            break;
+
+    // [DMC]
+        case 0x10:
+            break;
+
+        case 0x11:
+            break;
+
+        case 0x12:
+            break;
+
+        case 0x13:
+            break;
+
+    // [STATUS]
         case 0x15:
             STATUS.square1_enable = value & 1;
             STATUS.square2_enable = (value >> 1) & 1;
@@ -115,6 +137,7 @@ void NES_apu_io_write(struct NES_Core* nes, const uint16_t addr, const uint8_t v
             STATUS.dmc_enable = (value >> 4) & 1;
             break;
 
+    // [FRAME-SEQUENCER]
         case 0x17:
             // this resets the frame counter and clock divider(?)
             FRAME_SEQUENCER.step = 0;

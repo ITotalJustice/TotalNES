@@ -12,7 +12,7 @@ bool is_square1_enabled(const struct NES_Core* nes) {
 }
 
 bool is_square1_length_enabled(const struct NES_Core* nes) {
-    return SQUARE1_CHANNEL.length_counter_halt == 0;// && APU.status.pulse1 == 0;
+    return SQUARE1_CHANNEL.length_counter_halt == 0;
 }
 
 bool is_square1_sweep_enabled(const struct NES_Core* nes) {
@@ -20,7 +20,7 @@ bool is_square1_sweep_enabled(const struct NES_Core* nes) {
 }
 
 uint16_t get_square1_freq(const struct NES_Core* nes) {
-    return SQUARE1_CHANNEL.freq;
+    return SQUARE1_CHANNEL.timer_reload;
 }
 
 void clock_square1_length(struct NES_Core* nes) {
@@ -94,7 +94,7 @@ void clock_square1_sweep(struct NES_Core* nes) {
             }
             else {
                 // otherwise set the new value!
-                SQUARE1_CHANNEL.freq = new_freq;
+                SQUARE1_CHANNEL.timer_reload = new_freq;
             }
         }
     }
