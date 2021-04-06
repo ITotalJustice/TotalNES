@@ -50,7 +50,7 @@ struct SDL_Ctx {
 #define SCALE 3
 static struct SDL_Ctx create_sdl_ctx(const char* name, int x, int y, int w, int h, uint32_t format) {
 	struct SDL_Ctx ctx = {0};
-	
+
 	ctx.window = SDL_CreateWindow(name, x, y, w * SCALE, h * SCALE, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
 	ctx.renderer = SDL_CreateRenderer(ctx.window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
 	ctx.texture = SDL_CreateTexture(ctx.renderer, format, SDL_TEXTUREACCESS_STREAMING, w, h);
@@ -78,10 +78,6 @@ static void render_ctx(struct SDL_Ctx* ctx) {
 }
 
 static void core_apu_callback(struct NES_Core* nes, void* user, struct NES_ApuCallbackData* data) {
-	#ifdef DUMP_AUDIO
-        fwrite(data->samples, 1, sizeof(data->samples), AUDIO_DUMP_FILE);
-    #endif
-
     while ((SDL_GetQueuedAudioSize(AUDIO_DEVICE_ID)) > (1024)) {
         SDL_Delay(1);
     }
@@ -94,7 +90,7 @@ int main(int argc, char** argv) {
         fprintf(stderr, "missing args\n");
         exit(-1);
     }
-	
+
 	size_t rom_size = 0;
 	if (!read_file(argv[1], ROM_BUFFER, &rom_size)) {
 		return false;
@@ -106,7 +102,7 @@ int main(int argc, char** argv) {
     }
 
 	// saves audio to disk (sample.raw)
-	SDL_setenv("SDL_AUDIODRIVER", "disk", 1);
+	// SDL_setenv("SDL_AUDIODRIVER", "disk", 1);
 
     SDL_Init(SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_EVENTS);
 
@@ -139,7 +135,7 @@ int main(int argc, char** argv) {
 
         SDL_PauseAudioDevice(AUDIO_DEVICE_ID, 0);
     }
-	
+
 	// set the audio callback
 	NES_set_apu_callback(&nes_core, core_apu_callback, NULL);
 
@@ -183,13 +179,13 @@ int main(int argc, char** argv) {
 
 		struct NES_PatternTableGfx pattern0 = NES_ppu_get_pattern_table(&nes_core, 0, pallete_num);
 		struct NES_PatternTableGfx pattern1 = NES_ppu_get_pattern_table(&nes_core, 1, pallete_num);
-    
+
 		update_ctx(&pattern0_sdl_ctx, pattern0.pixels, sizeof(pattern0.pixels));
 		render_ctx(&pattern0_sdl_ctx);
 
 		update_ctx(&pattern1_sdl_ctx, pattern1.pixels, sizeof(pattern1.pixels));
 		render_ctx(&pattern1_sdl_ctx);
-		
+
 	}
 
 	destroy_sdl_ctx(&core_sdl_ctx);
@@ -198,7 +194,6 @@ int main(int argc, char** argv) {
 
 	SDL_CloseAudioDevice(AUDIO_DEVICE_ID);
 	SDL_Quit();
-
 
     return 0;
 }

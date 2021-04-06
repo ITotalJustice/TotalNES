@@ -16,7 +16,7 @@ const bool SQUARE_DUTY[4][8] = {
     [0] = { 0, 1, 0, 0, 0, 0, 0, 0 }, // (12.5%)
     [1] = { 0, 1, 1, 0, 0, 0, 0, 0 }, // (25%)
     [2] = { 0, 1, 1, 1, 1, 0, 0, 0 }, // (50%)
-    [3] = { 1, 0, 0, 1, 1, 1, 1, 1 }, // (25% negated) 
+    [3] = { 1, 0, 0, 1, 1, 1, 1, 1 }, // (25% negated)
 };
 
 const uint8_t LENGTH_COUNTER_TABLE[0x20] = {
@@ -134,11 +134,10 @@ static void sample(struct NES_Core* nes) {
 }
 
 void NES_apu_run(struct NES_Core* nes, const uint16_t cycles_elapsed) {
-    
     // atm im multiplying the freq by 2, it sounds too high pitch at normal
     // frequency for some reason...
     // i read that its 2 cpu cycles for 1 apu cycle, so maybe thats why?
-    
+
     SQUARE1_CHANNEL.timer -= cycles_elapsed;
     if (SQUARE1_CHANNEL.timer <= 0) {
         SQUARE1_CHANNEL.timer += get_square1_freq(nes) << 1;

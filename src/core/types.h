@@ -118,7 +118,7 @@ struct NES_Sprite {
         uint8_t flipx : 1;
         uint8_t flipy : 1;
     } attr;
-    
+
     uint8_t x;
 };
 
@@ -160,7 +160,7 @@ struct NES_Ppu {
 
     uint16_t vram_addr : 14;
     uint8_t oam_addr;
-    
+
     // this is the value written to by $2005 AND $2006 first write
     uint8_t horizontal_scroll_origin;
     // this s the second byte of $2005
@@ -181,7 +181,7 @@ struct NES_Ppu {
     // the vram is incremented by either 1 or 32 after each write.
     // this value is set after the cpu writes to $2000
     uint8_t vram_addr_increment : 6;
-    
+
     uint16_t cycles; // 0-341
     int16_t next_cycles;
     int16_t scaline; // -1 - 261
@@ -204,12 +204,12 @@ struct NES_INES {
     struct {
         uint8_t pgr_ram_size;
     } flag8;
-    
+
     struct {
         uint8_t tv_system : 1;
         uint8_t : 7;
     } flag9;
-    
+
     uint8_t unused[0x6];
 };
 
@@ -218,27 +218,27 @@ struct NES_INES2 {
         uint8_t mapper_num : 4;
         uint8_t submapper_num : 4;
     } flag8;
-    
+
     struct {
         uint8_t pgr_rom : 4;
         uint8_t chr_rom : 4;
     } flag9;
-    
+
     struct {
         uint8_t pgr_ram : 4;
         uint8_t pgr_nvram : 4;
     } flag10;
-    
+
     struct {
         uint8_t chr_ram : 4;
         uint8_t chr_nvram : 4;
     } flag11;
-    
+
     struct {
         uint8_t timing_mode : 2;
         uint8_t : 6;
     } flag12;
-    
+
     union { /* todo :  name the structs  */
         struct {
             uint8_t ppu_type : 4;
@@ -249,7 +249,7 @@ struct NES_INES2 {
             uint8_t : 4;
         } b;
     } flag13;
-    
+
     struct {
         uint8_t idk : 2;
         uint8_t : 6;
@@ -273,7 +273,7 @@ struct NES_CartHeader {
         uint8_t four_screen_mode : 1;
         uint8_t mapper_num_lo : 4;
     } flag6;
-    
+
     struct {
         uint8_t console_type : 2;
         uint8_t nes2 : 2;
@@ -286,7 +286,7 @@ struct NES_CartHeader {
     };
 };
 
-struct NES_Cart {   
+struct NES_Cart {
     uint8_t* pgr_rom;
     uint8_t* chr_rom;
     uint8_t* base_rom; /* rom buffer passed into loadrom() */

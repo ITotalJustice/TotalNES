@@ -104,27 +104,27 @@ uint8_t NES_ppu_read(struct NES_Core* nes, uint16_t addr) {
     else if (addr >= 0x1000 && addr <= 0x1FFF) { /* pattern table 1 */
         return NES_cart_read(nes, addr);
     }
-    
+
     else if (addr >= 0x2000 && addr <= 0x23FF) { /* nametable 0 */
         return 0xFF;
     }
-    
+
     else if (addr >= 0x2400 && addr <= 0x27FF) { /* nametable 1 */
         return 0xFF;
     }
-    
+
     else if (addr >= 0x2800 && addr <= 0x2BFF) { /* nametable 2 */
         return 0xFF;
     }
-    
+
     else if (addr >= 0x2C00 && addr <= 0x2FFF) { /* nametable 3 */
         return 0xFF;
     }
-    
+
     else if (addr >= 0x3000 && addr <= 0x3EFF) { /* mirrors of 0x2000-0x2EFF */
         return NES_ppu_read(nes, addr - 0x1000);
     }
-    
+
     else if (addr >= 0x3F00 && addr <= 0x3FFF) { /* palette ram + mirrors. */
         return nes->ppu.pram[addr & 0x1F];
     }
@@ -137,31 +137,31 @@ void NES_ppu_write(struct NES_Core* nes, uint16_t addr, uint8_t value) {
     if (addr <= 0x0FFF) { /* pattern table 0 */
         NES_cart_write(nes, addr, value);
     }
-    
+
     else if (addr >= 0x1000 && addr <= 0x1FFF) { /* pattern table 1 */
         NES_cart_write(nes, addr, value);
     }
-    
+
     else if (addr >= 0x2000 && addr <= 0x23FF) { /* nametable 0 */
 
     }
-    
+
     else if (addr >= 0x2400 && addr <= 0x27FF) { /* nametable 1 */
-    
+
     }
-    
+
     else if (addr >= 0x2800 && addr <= 0x2BFF) { /* nametable 2 */
 
     }
-    
+
     else if (addr >= 0x2C00 && addr <= 0x2FFF) { /* nametable 3 */
 
     }
-    
+
     else if (addr >= 0x3000 && addr <= 0x3EFF) { /* mirrors of 0x2000-0x2EFF */
         NES_ppu_write(nes, addr - 0x1000, value);
     }
-    
+
     else if (addr >= 0x3F00 && addr <= 0x3FFF) { /* palette ram + mirrors. */
         nes->ppu.pram[addr & 0x1F] = value;
     }
@@ -219,9 +219,9 @@ struct NES_PatternTableGfx NES_ppu_get_pattern_table(struct NES_Core* nes, uint8
                     const uint8_t colour_id = (lsb & 1) + (msb & 1);
 
                     const struct RgbTriple rgb_triple = get_colour_from_palette_ram(nes, palette, colour_id);
-                    
+
                     const uint32_t colour = (rgb_triple.r << 16) | (rgb_triple.g << 8) | (rgb_triple.b);
-                    
+
                     gfx_output.pixels[y * 8 + row][x * 8 + (7 - coloumn)] = colour;
 
                     // shift down

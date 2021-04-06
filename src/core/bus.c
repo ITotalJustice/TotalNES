@@ -54,7 +54,7 @@ static inline uint8_t NES_cpu_io_read(struct NES_Core* nes, uint8_t addr) {
         case 0x10: case 0x11: case 0x12: case 0x13:
         case 0x15:
             return NES_apu_io_read(nes, addr);
-        
+
         case 0x14:
             data = nes->ppu.oam_addr;
             break;
@@ -62,7 +62,7 @@ static inline uint8_t NES_cpu_io_read(struct NES_Core* nes, uint8_t addr) {
         case 0x16: /* controller 1 */
             data = NES_joypad_read_port_0(nes);
             break;
-        
+
         case 0x17: /* controller 2 */
             data = 0x00;
             break;
@@ -85,12 +85,12 @@ static inline void NES_cpu_io_write(struct NES_Core* nes, uint8_t addr, uint8_t 
         case 0x15: case 0x17:
             NES_apu_io_write(nes, addr, value);
             break;
-        
+
         case 0x14:
             nes->ppu.oam_addr = value;
             NES_dma(nes);
             break;
-        
+
         case 0x16: /* strobe */
             nes->jp.shift = 0;
             break;
@@ -110,11 +110,11 @@ static inline uint8_t NES_ppu_register_read(struct NES_Core* nes, uint16_t addr)
             // reading resets the 7-bit, which is the vblank flag
             nes->ppu._status.vblank = 0;
             break;
-        
+
         case 0x4:
             data = nes->ppu.oam[nes->ppu.oam_addr];
             break;
-        
+
         case 0x7:
             // this returns the previous value as reads are delayed!
             data = nes->ppu.vram_latched_read;
@@ -126,13 +126,13 @@ static inline uint8_t NES_ppu_register_read(struct NES_Core* nes, uint16_t addr)
             }
             ++nes->ppu.vram_addr;
             break;
-        
+
         /* write only regs return current latched value. */
         default:
             data = nes->ppu.vram_latched_read;
             break;
     }
-    
+
     return data;
 }
 
@@ -143,22 +143,22 @@ static inline void NES_ppu_register_write(struct NES_Core* nes, uint16_t addr, u
             // this inc is used for $2007 when writing, the addr is incremented
             nes->ppu.vram_addr_increment = nes->ppu._ctrl.vram_addr ? 32 : 1;
             break;
-        
+
         case 0x1:
             nes->ppu.mask = value;
             break;
-        
+
         case 0x3:
             // this addr is used for indexing the oam
             nes->ppu.oam_addr = value;
             break;
-        
+
         case 0x4:
             // the addr is incremented after each write
             // this will wrap round (0-255)
             nes->ppu.oam[nes->ppu.oam_addr++] = value;
             break;
-        
+
         // scroll stuff
         case 0x5:
             if (nes->ppu.has_first_8bit) {
@@ -238,19 +238,19 @@ uint8_t NES_cpu_read(struct NES_Core* nes, uint16_t addr) {
     if (addr <= 0x1FFF) { // ram
         return nes->ram[addr & 0x7FF];
     }
-    
+
     else if (addr >= 0x2000 && addr <= 0x3FFF) { // ppu reg
         return NES_ppu_register_read(nes, addr);
     }
-    
+
     else if (addr >= 0x4000 && addr <= 0x4017) { // io
         return NES_cpu_io_read(nes, addr & 0x1F);
     }
-    
+
     else if (addr >= 0x4020) { // cart
         return NES_cart_read(nes, addr);
     }
-    
+
     else {
         NES_log_err("UNK MEM READ: 0x%04X\n", addr);
         assert(0);
@@ -267,15 +267,15 @@ void NES_cpu_write(struct NES_Core* nes, uint16_t addr, uint8_t value) {
     else if (addr >= 0x2000 && addr <= 0x3FFF) { // ppu reg
         NES_ppu_register_write(nes, addr & 0x7, value);
     }
-    
+
     else if (addr >= 0x4000 && addr <= 0x4017) { // io
         NES_cpu_io_write(nes, addr & 0x1F, value);
-    } 
-    
+    }
+
     else if (addr >= 0x4020) { // cart
         NES_cart_write(nes, addr, value);
     }
-    
+
     else {
         NES_log_err("UNK MEM WRITE: 0x%04X\n", addr);
         assert(0);
@@ -285,8 +285,8 @@ void NES_cpu_write(struct NES_Core* nes, uint16_t addr, uint8_t value) {
 uint16_t NES_cpu_read16(struct NES_Core* nes, uint16_t addr) {
     const uint16_t lo = NES_cpu_read(nes, addr + 0);
     const uint16_t hi = NES_cpu_read(nes, addr + 1);
-    
-    return lo | (hi << 8); 
+
+    return lo | (hi << 8);
 }
 
 void NES_cpu_write16(struct NES_Core* nes, uint16_t addr, uint16_t value) {

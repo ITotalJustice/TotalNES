@@ -20,13 +20,13 @@ void NES_reset(struct NES_Core* nes) {
 
 int NES_is_header_valid(struct NES_Core* nes, const struct NES_CartHeader* header) {
     assert(nes && header);
-    
+
     const uint8_t ines_header =
         header->header_id[0] == 'N' &&
         header->header_id[1] == 'E' &&
         header->header_id[2] == 'S' &&
         header->header_id[3] == 0x1A;
-    
+
     if (!ines_header) {
         return NES_UNKNOWN_HEADER;
     }
@@ -63,7 +63,7 @@ int NES_loadrom(struct NES_Core* nes, uint8_t* buffer, size_t size) {
         header->header_id[1] == 'E' &&
         header->header_id[2] == 'S' &&
         header->header_id[3] == 0x1A;
-    
+
     if (!ines_header) {
         return NES_UNKNOWN_HEADER;
     }
@@ -74,9 +74,9 @@ int NES_loadrom(struct NES_Core* nes, uint8_t* buffer, size_t size) {
         NES_log_err("ines 2.0 header\n");
         return NES_UNKNOWN_HEADER;
     }
-    
+
     const uint8_t mapper_num = (header->flag7.mapper_num_hi << 4) | header->flag6.mapper_num_lo;
-    
+
     if (!NES_has_mapper(mapper_num)) {
         NES_log_err("MISSING MAPPER: %u\n", mapper_num);
         return NES_UNSUPORTED_MAPPER;
@@ -128,7 +128,7 @@ void NES_run_frame(struct NES_Core* nes) {
             NES_ppu_run(nes, nes->cpu.cycles);
             NES_ppu_run(nes, nes->cpu.cycles);
         }
-        
+
         NES_apu_run(nes, nes->cpu.cycles);
 
         cycles += nes->cpu.cycles;

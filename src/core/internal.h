@@ -59,7 +59,7 @@ extern "C" {
 enum NesClocks {
     // 21mhz (in hz)
     NES_MASTER_CLOCK = 21477270,
-    
+
     // ~1.79mhz (in hz)
     NES_CPU_CYCLES = NES_MASTER_CLOCK / 12,
 

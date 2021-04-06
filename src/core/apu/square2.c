@@ -39,7 +39,7 @@ void clock_square2_length(struct NES_Core* nes) {
 
 void clock_square2_envelope(struct NES_Core* nes) {
     if (SQUARE2_CHANNEL.constant_volume == 1) {
-        return;    
+        return;
     }
 
     if (SQUARE2_CHANNEL.envelope_counter >= 0) {

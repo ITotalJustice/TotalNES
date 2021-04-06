@@ -12,7 +12,7 @@ static const bool MAPPERS[0x100] = {
 
 static int NES_mapper_init_000(struct NES_Core* nes) {
     memset(&nes->cart.mapper_000, 0, sizeof(nes->cart.mapper_000));
-    
+
     nes->cart.mapper_type = NES_MAPPER_000;
 
     /* prg rom banks */
@@ -43,7 +43,7 @@ int NES_mapper_setup(struct NES_Core* nes, uint8_t mapper) {
 
 static inline uint8_t mapper_read_000(struct NES_Core* nes, uint16_t addr) {
     switch ((addr >> 12) & 0xF) {
-    // [PPU]    
+    // [PPU]
         case 0x0:
             return nes->cart.mapper_000.chr_ram_slots[0][addr & 0x0FFF];
         case 0x1:
@@ -61,7 +61,7 @@ static inline uint8_t mapper_read_000(struct NES_Core* nes, uint16_t addr) {
 
 static inline void mapper_write_000(struct NES_Core* nes, uint16_t addr, uint8_t value) {
     switch ((addr >> 12) & 0xF) {
-    // [PPU]    
+    // [PPU]
         case 0x0:
             nes->cart.mapper_000.chr_ram_slots[0][addr & 0x0FFF] = value;
             break;
