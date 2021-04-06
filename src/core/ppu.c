@@ -114,11 +114,11 @@ uint8_t NES_ppu_read(struct NES_Core* nes, uint16_t addr) {
     }
 
     else if (addr >= 0x2800 && addr <= 0x2BFF) { /* nametable 2 */
-        return 0xFF; //return nes->ppu.vram[addr - 0x2000];
+        return nes->ppu.vram[addr - 0x2800];
     }
 
     else if (addr >= 0x2C00 && addr <= 0x2FFF) { /* nametable 3 */
-        return 0xFF; //return nes->ppu.vram[addr - 0x2000];
+        return nes->ppu.vram[addr - 0x2800];
     }
 
     else if (addr >= 0x3000 && addr <= 0x3EFF) { /* mirrors of 0x2000-0x2EFF */
@@ -151,11 +151,11 @@ void NES_ppu_write(struct NES_Core* nes, uint16_t addr, uint8_t value) {
     }
 
     else if (addr >= 0x2800 && addr <= 0x2BFF) { /* nametable 2 */
-        // nes->ppu.vram[addr - 0x2000] = value;
+        nes->ppu.vram[addr - 0x2800] = value;
     }
 
     else if (addr >= 0x2C00 && addr <= 0x2FFF) { /* nametable 3 */
-        // nes->ppu.vram[addr - 0x2000] = value;
+        nes->ppu.vram[addr - 0x2800] = value;
     }
 
     else if (addr >= 0x3000 && addr <= 0x3EFF) { /* mirrors of 0x2000-0x2EFF */
@@ -239,16 +239,14 @@ struct NES_PatternTableGfx NES_ppu_get_pattern_table(struct NES_Core* nes, uint8
 // each scanline takes 341 ppu clock, so ~113 cpu clocks
 // a pixel is created every clock cycle (ppu cycle?)
 void NES_ppu_run(struct NES_Core* nes, const uint16_t cycles_elapsed) {
-    nes->ppu.next_cycles -= cycles_elapsed;
-
     ++nes->ppu.cycles;
 
     if (nes->ppu.cycles >= 341) {
         nes->ppu.cycles = 0;
-        ++nes->ppu.scaline;
+        ++nes->ppu.scanline;
 
         // vblank
-        if (nes->ppu.scaline == 240) {
+        if (nes->ppu.scanline == 240) {
             // set the status to vblank
             nes->ppu._status.vblank = 1;
 
@@ -259,10 +257,10 @@ void NES_ppu_run(struct NES_Core* nes, const uint16_t cycles_elapsed) {
         }
 
         // reset
-        else if (nes->ppu.scaline == 261) {
+        else if (nes->ppu.scanline == 261) {
             // we are no longer in vblank, always clear the flag
             nes->ppu._status.vblank = 0;
-            nes->ppu.scaline = -1;
+            nes->ppu.scanline = -1;
         }
     }
 }

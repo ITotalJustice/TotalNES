@@ -24,7 +24,6 @@ source = files([
     'src/core/apu/triangle.c',
     'src/core/apu/noise.c',
     'src/core/apu/dmc.c',
-    
 
     # used for testing
     'src/main.c',

@@ -218,7 +218,7 @@ struct NES_Ppu {
 
     uint16_t cycles; // 0-341
     int16_t next_cycles;
-    int16_t scaline; // -1 - 261
+    int16_t scanline; // -1 - 261
 
     uint8_t pram[0x20]; /* palette ram */
     uint8_t oam[0x100]; /* object attribute memory */
@@ -382,12 +382,19 @@ struct NES_Joypad {
     uint8_t latch_b; // $4017
 };
 
+struct GB_MixerData {
+    int8_t square1;
+    int8_t square2;
+    int8_t triangle;
+    int8_t noise;
+};
+
 typedef void(*NES_apu_callback_t)(struct NES_Core* nes, void* user,
     struct NES_ApuCallbackData* data
 );
 
 typedef int8_t(*NES_mixer_callback_t)(struct NES_Core* nes, void* user,
-    int8_t square1, int8_t square2, int8_t triangle, int8_t noise
+    struct GB_MixerData data
 );
 
 

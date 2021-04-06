@@ -2,8 +2,6 @@
 #include "core/internal.h"
 #include "core/apu/apu.h"
 
-#include <stdlib.h>
-#include <string.h>
 #include <assert.h>
 
 
@@ -124,41 +122,43 @@ static void frame_sequencer_clock(struct NES_Core* nes) {
 }
 
 static inline int8_t builtin_mixer(const struct NES_Core* nes,
-    int8_t square1, int8_t square2, int8_t triangle, int8_t noise
+    const struct GB_MixerData data
 ) {
     // this mode is just for testing each channel
     // it will be removed at somepoint!
     #define MODE 0
 
     #if MODE == 3
-        return triangle * NES_VOLUME_SCALE;
+        return data.triangle * NES_VOLUME_SCALE;
 
     #elif MODE == 4
-        return noise * NES_VOLUME_SCALE;
+        return data.noise * NES_VOLUME_SCALE;
     #else
-        return ((square1 * NES_VOLUME_SCALE) + (square2 * NES_VOLUME_SCALE) +
-                (triangle * NES_VOLUME_SCALE) + (noise * NES_VOLUME_SCALE)) / 4;
+        return ((data.square1 * NES_VOLUME_SCALE) + (data.square2 * NES_VOLUME_SCALE) +
+                (data.triangle * NES_VOLUME_SCALE) + (data.noise * NES_VOLUME_SCALE)) / 4;
     #endif
 }
 
 
 static void sample(struct NES_Core* nes) {
-    const int8_t square1_sample = sample_square1(nes) * is_square1_enabled(nes);
-    const int8_t square2_sample = sample_square2(nes) * is_square2_enabled(nes);
-    const int8_t triangle_sample = sample_triangle(nes) * is_triangle_enabled(nes);
-    const int8_t noise_sample = sample_noise(nes) * is_noise_enabled(nes);
+    const struct GB_MixerData mixer_data = {
+        .square1 = sample_square1(nes) * is_square1_enabled(nes),
+        .square2 = sample_square2(nes) * is_square2_enabled(nes),
+        .triangle = sample_triangle(nes) * is_triangle_enabled(nes),
+        .noise = sample_noise(nes) * is_noise_enabled(nes),
+    };
 
     // check if the user has set it's own mixer callback!
     if (nes->mixer_cb != NULL) {
         APU.sample_data.samples[APU.sample_index] = nes->mixer_cb(nes, nes->mixer_cb_user_data,
-            square1_sample, square2_sample, triangle_sample, noise_sample
+            mixer_data
         );
     }
 
     // use our own!
     else {
         APU.sample_data.samples[APU.sample_index] = builtin_mixer(nes,
-            square1_sample, square2_sample, triangle_sample, noise_sample
+            mixer_data
         );
     }
 
