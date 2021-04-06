@@ -2,35 +2,23 @@
 #include "core/internal.h"
 #include "core/apu/apu.h"
 
-
-#include <stdio.h>
 #include <assert.h>
 
 
 uint8_t NES_apu_io_read(struct NES_Core* nes, const uint16_t addr) {
-    uint8_t data = 0xFF;
+    // reading from these registers returns the last written value,
+    // NOT the current value stored!
+    uint8_t data = APU.io[addr & 0x1F];
 
     switch (addr & 0x1F) {
-        case 0x00: case 0x01: case 0x02: case 0x03:
-        case 0x04: case 0x05: case 0x06: case 0x07:
-        case 0x08: case 0x09: case 0x0A: case 0x0B:
-        case 0x0C: case 0x0D: case 0x0E: case 0x0F:
-        case 0x10: case 0x11: case 0x12: case 0x13:
-            // reading from these registers
-            // returns the last written value, NOT the current
-            // value stored!
-            data = APU.io[addr & 0x1F];
-            break;
-
         case 0x15:
             data = nes->apu.io[addr & 0x1F] & ~(0xF);
-            data |= is_square1_length_enabled(nes) << 0;
-            // data |= is_square2_length_enabled(nes) << 1;
-            data |= 0x04;//is_triangle_length_enabled(nes) << 0;
-            data |= 0x08;//is_pulse1_length_enabled(nes) << 0;
+            data |= (SQUARE1_CHANNEL.length_counter > 0) << 0;
+            data |= (SQUARE2_CHANNEL.length_counter > 0) << 1;
+            data |= (TRIANGLE_CHANNEL.length_counter > 0) << 2;
+            data |= (NOISE_CHANNEL.length_counter > 0) << 3;
             nes->apu.status.frame_irq = 0;
             break;
-
     }
 
     return data;

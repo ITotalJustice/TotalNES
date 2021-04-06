@@ -2,13 +2,11 @@
 #include "core/internal.h"
 #include "core/apu/apu.h"
 
-#include <stdlib.h>
-#include <string.h>
 #include <assert.h>
 
 
 bool is_triangle_enabled(const struct NES_Core* nes) {
-    return TRIANGLE_CHANNEL.length_counter > 0;
+    return STATUS.triangle_enable;
 }
 
 bool is_triangle_length_enabled(const struct NES_Core* nes) {

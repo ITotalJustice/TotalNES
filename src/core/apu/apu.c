@@ -131,12 +131,12 @@ static void frame_sequencer_clock(struct NES_Core* nes) {
 }
 
 static void sample(struct NES_Core* nes) {
-    const int8_t square1_sample = sample_square1(nes);// * is_square1_enabled(nes);
-    const int8_t square2_sample = sample_square2(nes);// * is_square2_enabled(nes);
-    const int8_t triangle_sample = sample_triangle(nes);// * is_triangle_enabled(nes);
-    const int8_t noise_sample = sample_noise(nes);// * is_triangle_enabled(nes);
+    const int8_t square1_sample = sample_square1(nes) * is_square1_enabled(nes);
+    const int8_t square2_sample = sample_square2(nes) * is_square2_enabled(nes);
+    const int8_t triangle_sample = sample_triangle(nes) * is_triangle_enabled(nes);
+    const int8_t noise_sample = sample_noise(nes) * is_noise_enabled(nes);
 
-#define MODE 4
+#define MODE 0
 
 #if MODE == 3
     const int8_t final = triangle_sample;

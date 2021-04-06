@@ -2,13 +2,11 @@
 #include "core/internal.h"
 #include "core/apu/apu.h"
 
-#include <stdlib.h>
-#include <string.h>
 #include <assert.h>
 
 
 bool is_square2_enabled(const struct NES_Core* nes) {
-    return SQUARE2_CHANNEL.length_counter > 0;
+    return STATUS.square2_enable;
 }
 
 bool is_square2_length_enabled(const struct NES_Core* nes) {
