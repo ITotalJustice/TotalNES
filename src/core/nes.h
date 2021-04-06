@@ -10,15 +10,31 @@ extern "C" {
 struct NES_State;
 
 
+// enum NES_Button {
+//     NES_BUTTON_A        = (1 << 0),
+//     NES_BUTTON_B        = (1 << 1),
+//     NES_BUTTON_SELECT   = (1 << 2),
+//     NES_BUTTON_START    = (1 << 3),
+
+//     NES_BUTTON_UP       = (1 << 4),
+//     NES_BUTTON_DOWN     = (1 << 5),
+//     NES_BUTTON_LEFT     = (1 << 6),
+//     NES_BUTTON_RIGHT    = (1 << 7),
+// };
+
+// DK starts with the [START] button being in this order
+// but im not sure if it's correct, it doesn't seem to work
+// when in game either
 enum NES_Button {
-    NES_BUTTON_A        = (1 << 0),
-    NES_BUTTON_B        = (1 << 1),
-    NES_BUTTON_SELECT   = (1 << 2),
-    NES_BUTTON_START    = (1 << 3),
-    NES_BUTTON_UP       = (1 << 4),
-    NES_BUTTON_DOWN     = (1 << 5),
-    NES_BUTTON_LEFT     = (1 << 6),
-    NES_BUTTON_RIGHT    = (1 << 7),
+    NES_BUTTON_A        = (1 << 7),
+    NES_BUTTON_B        = (1 << 6),
+    NES_BUTTON_SELECT   = (1 << 5),
+    NES_BUTTON_START    = (1 << 4),
+
+    NES_BUTTON_UP       = (1 << 3),
+    NES_BUTTON_DOWN     = (1 << 2),
+    NES_BUTTON_LEFT     = (1 << 1),
+    NES_BUTTON_RIGHT    = (1 << 0),
 };
 
 

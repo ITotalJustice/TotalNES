@@ -32,8 +32,6 @@ void clock_square1_length(struct NES_Core* nes) {
     if (SQUARE1_CHANNEL.length_counter > 0) {
         // otherwise we clock it
         --SQUARE1_CHANNEL.length_counter;
-
-        // check if we are zero!
     }
 }
 
@@ -100,7 +98,15 @@ void clock_square1_sweep(struct NES_Core* nes) {
     }
 }
 
+void clock_square1_duty(struct NES_Core* nes) {
+    ++SQUARE1_CHANNEL.duty_index;
+}
+
 int8_t sample_square1(const struct NES_Core* nes) {
+    if (SQUARE1_CHANNEL.length_counter == 0) {
+        return -SQUARE1_CHANNEL.volume;
+    }
+
     if (SQUARE_DUTY[SQUARE1_CHANNEL.duty][SQUARE1_CHANNEL.duty_index]) {
         return SQUARE1_CHANNEL.volume;
     }

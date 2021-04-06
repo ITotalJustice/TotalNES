@@ -92,7 +92,12 @@ static inline void NES_cpu_io_write(struct NES_Core* nes, uint8_t addr, uint8_t 
             break;
 
         case 0x16: /* strobe */
-            nes->jp.shift = 0;
+            nes->jp.strobe = value & 0x1;
+            if (nes->jp.strobe) {
+                nes->jp.latch_a = nes->jp.buttons_a;
+                nes->jp.latch_b = nes->jp.buttons_b;
+            }
+
             break;
     }
 }

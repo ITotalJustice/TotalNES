@@ -28,8 +28,6 @@ void clock_triangle_length(struct NES_Core* nes) {
     if (TRIANGLE_CHANNEL.length_counter > 0) {
         // otherwise we clock it
         --TRIANGLE_CHANNEL.length_counter;
-
-        // check if we are zero!
     }
 }
 
@@ -37,7 +35,15 @@ void clock_triangle_linear(struct NES_Core* nes) {
 
 }
 
+void clock_triangle_duty(struct NES_Core* nes) {
+    ++TRIANGLE_CHANNEL.duty_index;
+}
+
 int8_t sample_triangle(const struct NES_Core* nes) {
+    if (TRIANGLE_CHANNEL.length_counter == 0) {
+        return 0;
+    }
+
     // i think this is right???
     return TRIANGLE_DUTY_TABLE[TRIANGLE_CHANNEL.duty_index] * 2;
 }

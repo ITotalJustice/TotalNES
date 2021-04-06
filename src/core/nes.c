@@ -106,6 +106,9 @@ int NES_loadrom(struct NES_Core* nes, uint8_t* buffer, size_t size) {
     // sload from the reset vector
     nes->cpu.PC = NES_cpu_read16(nes, NES_VECTOR_RESET);
 
+    // setup noise lsfr
+    nes->apu.noise.lsfr = 0x7FF;
+
     return NES_OK;
 }
 

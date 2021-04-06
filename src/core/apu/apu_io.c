@@ -63,6 +63,7 @@ void NES_apu_io_write(struct NES_Core* nes, const uint16_t addr, const uint8_t v
         case 0x03:
             SQUARE1_CHANNEL.timer_reload = (SQUARE1_CHANNEL.timer_reload & 0xFF) | ((value & 0x7) << 8);
             SQUARE1_CHANNEL.length_counter = LENGTH_COUNTER_TABLE[(value >> 3)];
+            SQUARE1_CHANNEL.envelope_counter = SQUARE1_CHANNEL.volume + 1;
             break;
 
     // [SQAURE2]
@@ -87,6 +88,7 @@ void NES_apu_io_write(struct NES_Core* nes, const uint16_t addr, const uint8_t v
         case 0x07:
             SQUARE2_CHANNEL.timer_reload = (SQUARE2_CHANNEL.timer_reload & 0xFF) | ((value & 0x7) << 8);
             SQUARE2_CHANNEL.length_counter = LENGTH_COUNTER_TABLE[(value >> 3)];
+            SQUARE2_CHANNEL.envelope_counter = SQUARE2_CHANNEL.volume + 1;
             break;
 
     // [TRIANGLE]
@@ -104,15 +106,19 @@ void NES_apu_io_write(struct NES_Core* nes, const uint16_t addr, const uint8_t v
 
     // [NOISE]
         case 0x0C:
-            break;
-
-        case 0x0D:
+            NOISE_CHANNEL.length_counter_halt = (value >> 5) & 1;
+            NOISE_CHANNEL.constant_volume = (value >> 4) & 1;
+            NOISE_CHANNEL.volume = value & 0x0F;
             break;
 
         case 0x0E:
+            NOISE_CHANNEL.random_number_mode = value >> 7;
+            NOISE_CHANNEL.frequency = value & 0x7;
             break;
 
         case 0x0F:
+            NOISE_CHANNEL.length_counter = LENGTH_COUNTER_TABLE[(value >> 3)];
+            NOISE_CHANNEL.envelope_counter = NOISE_CHANNEL.volume + 1;
             break;
 
     // [DMC]

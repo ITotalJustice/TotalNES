@@ -63,6 +63,21 @@ struct NES_Triangle {
     int16_t length_counter;
 };
 
+struct NES_Noise {
+    uint8_t volume : 4;
+    uint8_t constant_volume : 1;
+    uint8_t length_counter_halt : 1;
+
+    uint8_t frequency : 4;
+    uint8_t random_number_mode :1;
+
+    uint16_t lsfr : 15;
+
+    int16_t timer;
+    int16_t length_counter;
+    int8_t envelope_counter;
+};
+
 struct NES_Status {
     uint8_t dmc_irq : 1;
     uint8_t frame_irq : 1;
@@ -84,7 +99,9 @@ struct NES_FrameSequencer {
 };
 
 struct NES_ApuCallbackData {
-	int8_t samples[512 * 1];
+    // this number is arbitrary, though should be small enough that
+    // there's minimal latency!
+	int8_t samples[512];
 };
 
 struct NES_Apu {
@@ -95,6 +112,7 @@ struct NES_Apu {
     struct NES_Square square1;
     struct NES_Square square2;
     struct NES_Triangle triangle;
+    struct NES_Noise noise;
 
     struct NES_Status status;
     struct NES_FrameSequencer frame_sequencer;
@@ -207,7 +225,7 @@ struct NES_Ppu {
     uint8_t vram[0x800]; /* video ram */
 
     /* framebuffer */
-    uint16_t pixels[NES_SCREEN_HEIGHT][NES_SCREEN_WIDTH];
+    uint32_t pixels[NES_SCREEN_HEIGHT][NES_SCREEN_WIDTH];
 };
 /* PPU END */
 
@@ -355,11 +373,13 @@ struct NES_Cpu {
 };
 
 struct NES_Joypad {
-    uint8_t shift;
-    uint8_t buttons; // which buttons are down etc
+    bool strobe : 1;
 
-    uint8_t a; // $4016
-    uint8_t b; // $4017
+    uint8_t buttons_a; // which buttons are down etc
+    uint8_t buttons_b; // which buttons are down etc
+
+    uint8_t latch_a; // $4016
+    uint8_t latch_b; // $4017
 };
 
 typedef void(*NES_apu_callback_t)(struct NES_Core* nes, void* user, struct NES_ApuCallbackData* data);

@@ -59,6 +59,7 @@ static void on_clock_length_and_sweep(struct NES_Core* nes) {
     clock_square1_length(nes);
     clock_square2_length(nes);
     clock_triangle_length(nes);
+    clock_noise_length(nes);
 
     clock_square1_sweep(nes);
     clock_square2_sweep(nes);
@@ -67,6 +68,7 @@ static void on_clock_length_and_sweep(struct NES_Core* nes) {
 static void on_clock_envelope_and_linear_counter(struct NES_Core* nes) {
     clock_square1_envelope(nes);
     clock_square2_envelope(nes);
+    clock_noise_envelope(nes);
 
     clock_triangle_linear(nes);
 }
@@ -129,16 +131,20 @@ static void frame_sequencer_clock(struct NES_Core* nes) {
 }
 
 static void sample(struct NES_Core* nes) {
-    const int8_t square1_sample = sample_square1(nes) * is_square1_enabled(nes);
-    const int8_t square2_sample = sample_square2(nes) * is_square2_enabled(nes);
-    const int8_t triangle_sample = sample_triangle(nes) * is_triangle_enabled(nes);
+    const int8_t square1_sample = sample_square1(nes);// * is_square1_enabled(nes);
+    const int8_t square2_sample = sample_square2(nes);// * is_square2_enabled(nes);
+    const int8_t triangle_sample = sample_triangle(nes);// * is_triangle_enabled(nes);
+    const int8_t noise_sample = sample_noise(nes);// * is_triangle_enabled(nes);
 
-#define MODE 3
+#define MODE 4
 
 #if MODE == 3
     const int8_t final = triangle_sample;
+
+#elif MODE == 4
+    const int8_t final = noise_sample;
 #else
-    const int8_t final = ((square1_sample) + (square2_sample) + (triangle_sample)) / 3;
+    const int8_t final = ((square1_sample) + (square2_sample) + (triangle_sample) + (noise_sample)) / 4;
 #endif
 
     APU.sample_data.samples[APU.sample_index] = final;
@@ -163,19 +169,25 @@ void NES_apu_run(struct NES_Core* nes, const uint16_t cycles_elapsed) {
     SQUARE1_CHANNEL.timer -= cycles_elapsed;
     if (SQUARE1_CHANNEL.timer <= 0) {
         SQUARE1_CHANNEL.timer += get_square1_freq(nes) << 1;
-        SQUARE1_CHANNEL.duty_index++;
+        clock_square1_duty(nes);
     }
 
     SQUARE2_CHANNEL.timer -= cycles_elapsed;
     if (SQUARE2_CHANNEL.timer <= 0) {
         SQUARE2_CHANNEL.timer += get_square2_freq(nes) << 1;
-        SQUARE2_CHANNEL.duty_index++;
+        clock_square2_duty(nes);
     }
 
     TRIANGLE_CHANNEL.timer -= cycles_elapsed;
     if (TRIANGLE_CHANNEL.timer <= 0) {
         TRIANGLE_CHANNEL.timer += get_triangle_freq(nes);
-        TRIANGLE_CHANNEL.duty_index++;
+        clock_triangle_duty(nes);
+    }
+
+    NOISE_CHANNEL.timer -= cycles_elapsed;
+    if (NOISE_CHANNEL.timer <= 0) {
+        NOISE_CHANNEL.timer += get_noise_freq(nes);
+        clock_noise_lsfr(nes);
     }
 
     APU.frame_sequencer.timer -= cycles_elapsed;

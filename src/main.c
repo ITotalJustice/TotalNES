@@ -102,7 +102,7 @@ int main(int argc, char** argv) {
     }
 
 	// saves audio to disk (sample.raw)
-	// SDL_setenv("SDL_AUDIODRIVER", "disk", 1);
+	SDL_setenv("SDL_AUDIODRIVER", "disk", 1);
 
     SDL_Init(SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_EVENTS);
 
@@ -140,7 +140,7 @@ int main(int argc, char** argv) {
 	NES_set_apu_callback(&nes_core, core_apu_callback, NULL);
 
 	//
-	struct SDL_Ctx core_sdl_ctx = create_sdl_ctx("TotalNES", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, NES_SCREEN_WIDTH, NES_SCREEN_HEIGHT, SDL_PIXELFORMAT_BGR555);
+	struct SDL_Ctx core_sdl_ctx = create_sdl_ctx("TotalNES", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, NES_SCREEN_WIDTH, NES_SCREEN_HEIGHT, SDL_PIXELFORMAT_RGB888);
 	struct SDL_Ctx pattern0_sdl_ctx = create_sdl_ctx("Pattern Table 0", 0, SDL_WINDOWPOS_CENTERED, 128, 128, SDL_PIXELFORMAT_RGB888);
 	struct SDL_Ctx pattern1_sdl_ctx = create_sdl_ctx("Pattern Table 1", 1280 - (1280/10), SDL_WINDOWPOS_CENTERED, 128, 128, SDL_PIXELFORMAT_RGB888);
 
