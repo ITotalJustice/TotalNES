@@ -21,7 +21,7 @@ extern "C" {
 
 
 #ifndef NES_VOLUME_SCALE
-#define NES_VOLUME_SCALE 7 /* max range of -105 and +105 */
+#define NES_VOLUME_SCALE 8 /* max range of -120 and +120 */
 #endif // NES_VOLUME_SCALE
 
 

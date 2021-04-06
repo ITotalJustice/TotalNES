@@ -121,9 +121,7 @@ static void frame_sequencer_clock(struct NES_Core* nes) {
     }
 }
 
-static inline int8_t builtin_mixer(const struct NES_Core* nes,
-    const struct GB_MixerData data
-) {
+static inline int8_t builtin_mixer(const struct NES_Core* nes, const struct GB_MixerData data) {
     // this mode is just for testing each channel
     // it will be removed at somepoint!
     #define MODE 0

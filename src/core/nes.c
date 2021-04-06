@@ -109,6 +109,13 @@ int NES_loadrom(struct NES_Core* nes, uint8_t* buffer, size_t size) {
     // setup noise lsfr
     nes->apu.noise.lsfr = 0x7FF;
 
+    // i assume all channels start enabled...
+    nes->apu.status.square1_enable = 1;
+    nes->apu.status.square2_enable = 1;
+    nes->apu.status.triangle_enable = 1;
+    nes->apu.status.noise_enable = 1;
+    nes->apu.status.dmc_enable = 1;
+
     return NES_OK;
 }
 
