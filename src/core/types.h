@@ -92,7 +92,7 @@ struct NES_FrameSequencer {
     uint8_t mode : 1;
     uint8_t irq_enable : 1;
 
-    // either 0-4 or o-5 depending on the mode
+    // either 0-4 or 0-5 depending on the mode
     uint8_t step : 3;
 
     int16_t timer;
@@ -382,7 +382,14 @@ struct NES_Joypad {
     uint8_t latch_b; // $4017
 };
 
-typedef void(*NES_apu_callback_t)(struct NES_Core* nes, void* user, struct NES_ApuCallbackData* data);
+typedef void(*NES_apu_callback_t)(struct NES_Core* nes, void* user,
+    struct NES_ApuCallbackData* data
+);
+
+typedef int8_t(*NES_mixer_callback_t)(struct NES_Core* nes, void* user,
+    int8_t square1, int8_t square2, int8_t triangle, int8_t noise
+);
+
 
 struct NES_Core {
     struct NES_Cpu cpu;
@@ -391,6 +398,9 @@ struct NES_Core {
     struct NES_Joypad jp;
     struct NES_Cart cart;
     uint8_t ram[0x800]; // 2kb
+
+    NES_mixer_callback_t mixer_cb;
+    void* mixer_cb_user_data;
 
     NES_apu_callback_t apu_cb;
     void* apu_cb_user_data;

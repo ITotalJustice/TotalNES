@@ -20,6 +20,11 @@ extern "C" {
 #define FRAME_SEQUENCER APU.frame_sequencer
 
 
+#ifndef NES_VOLUME_SCALE
+#define NES_VOLUME_SCALE 7 /* max range of -105 and +105 */
+#endif // NES_VOLUME_SCALE
+
+
 // defined in core/apu/apu.c
 extern const bool SQUARE_DUTY[4][8];
 extern const uint8_t LENGTH_COUNTER_TABLE[0x20];
