@@ -1,6 +1,6 @@
-#include "core/nes.h"
-#include "core/internal.h"
-#include "core/apu/apu.h"
+#include "../nes.h"
+#include "../internal.h"
+#include "apu.h"
 
 #include <assert.h>
 

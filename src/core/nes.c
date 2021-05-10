@@ -1,7 +1,6 @@
-#include "core/nes.h"
-#include "core/internal.h"
+#include "nes.h"
+#include "internal.h"
 
-#include <stdlib.h>
 #include <string.h>
 #include <assert.h>
 
@@ -13,12 +12,12 @@ void NES_reset(struct NES_Core* nes) {
     nes->cpu.S = 0xFD;
     nes->cpu.PC = 0; // this gets set when the rom is loaded
 
-    nes->cpu.status.I = 1;
-    nes->cpu.status.D = 0;
-    nes->cpu.status.B = 2;
+    nes->cpu.I = 1;
+    nes->cpu.D = 0;
+    nes->cpu.B = 2;
 }
 
-int NES_is_header_valid(struct NES_Core* nes, const struct NES_CartHeader* header) {
+bool NES_is_header_valid(struct NES_Core* nes, const struct NES_CartHeader* header) {
     assert(nes && header);
 
     const uint8_t ines_header =
@@ -28,25 +27,25 @@ int NES_is_header_valid(struct NES_Core* nes, const struct NES_CartHeader* heade
         header->header_id[3] == 0x1A;
 
     if (!ines_header) {
-        return NES_UNKNOWN_HEADER;
+        return false;
     }
 
     const uint8_t ines_header2 = header->flag7.nes2 == 0x3;
     if (ines_header2) {
         NES_log_err("ines 2.0 header\n");
-        return NES_UNKNOWN_HEADER;
+        return false;
     }
 
     const uint8_t mapper_num = (header->flag7.mapper_num_hi << 4) | header->flag6.mapper_num_lo;
     if (!NES_has_mapper(mapper_num)) {
         NES_log_err("MISSING MAPPER: %u\n", mapper_num);
-        return NES_UNSUPORTED_MAPPER;
+        return false;
     }
 
-    return NES_OK;
+    return true;
 }
 
-int NES_loadrom(struct NES_Core* nes, uint8_t* buffer, size_t size) {
+bool NES_loadrom(struct NES_Core* nes, uint8_t* buffer, size_t size) {
     assert(nes && buffer && size);
 
     NES_reset(nes);
@@ -54,7 +53,7 @@ int NES_loadrom(struct NES_Core* nes, uint8_t* buffer, size_t size) {
     uint8_t* rom = buffer;
 
     if (!size || size < sizeof(struct NES_CartHeader)) {
-        return NES_BAD_ROM;
+        return false;
     }
 
     const struct NES_CartHeader* header = (struct NES_CartHeader*)rom;
@@ -65,29 +64,29 @@ int NES_loadrom(struct NES_Core* nes, uint8_t* buffer, size_t size) {
         header->header_id[3] == 0x1A;
 
     if (!ines_header) {
-        return NES_UNKNOWN_HEADER;
+        return false;
     }
 
     /* todo: support ines 2.0  */
     const uint8_t ines_header2 = header->flag7.nes2 == 0x3;
     if (ines_header2) {
         NES_log_err("ines 2.0 header\n");
-        return NES_UNKNOWN_HEADER;
+        return false;
     }
 
     const uint8_t mapper_num = (header->flag7.mapper_num_hi << 4) | header->flag6.mapper_num_lo;
 
     if (!NES_has_mapper(mapper_num)) {
         NES_log_err("MISSING MAPPER: %u\n", mapper_num);
-        return NES_UNSUPORTED_MAPPER;
+        return false;
     }
     NES_log("mapper num: %u\n", mapper_num);
 
     const uint32_t pgr_rom_size = header->pgr_rom_size * 0x4000;
     const uint32_t chr_rom_size = header->chr_rom_size * 0x2000;
 
-    NES_log("rom size is 0x%llX\n", size);
-    NES_log("header size is 0x%llX\n", sizeof(struct NES_CartHeader));
+    NES_log("rom size is 0x%zX\n", size);
+    NES_log("header size is 0x%zX\n", sizeof(struct NES_CartHeader));
     NES_log("pgr_rom: 0x%X\n", pgr_rom_size);
     NES_log("chr_rom: 0x%X\n", chr_rom_size);
 
@@ -116,7 +115,7 @@ int NES_loadrom(struct NES_Core* nes, uint8_t* buffer, size_t size) {
     nes->apu.status.noise_enable = 1;
     nes->apu.status.dmc_enable = 1;
 
-    return NES_OK;
+    return true;
 }
 
 void NES_set_apu_callback(struct NES_Core* nes, NES_apu_callback_t cb, void* user_data) {

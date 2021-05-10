@@ -1,8 +1,6 @@
-#include "core/nes.h"
-#include "core/internal.h"
+#include "nes.h"
+#include "internal.h"
 
-#include <stdlib.h>
-#include <string.h>
 #include <assert.h>
 
 

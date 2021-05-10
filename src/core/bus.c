@@ -1,5 +1,5 @@
-#include "core/nes.h"
-#include "core/internal.h"
+#include "nes.h"
+#include "internal.h"
 
 #include <stdio.h>
 #include <assert.h>
@@ -113,7 +113,7 @@ static inline uint8_t NES_ppu_register_read(struct NES_Core* nes, uint16_t addr)
             nes->ppu.write_flipflop = 0;
             nes->ppu.has_first_8bit = false;
             // reading resets the 7-bit, which is the vblank flag
-            nes->ppu._status.vblank = 0;
+            status_set_vblank(nes, false);
             break;
 
         case 0x4:
@@ -126,10 +126,12 @@ static inline uint8_t NES_ppu_register_read(struct NES_Core* nes, uint16_t addr)
             // save the new value
             nes->ppu.vram_latched_read = NES_ppu_read(nes, nes->ppu.vram_addr);
             // palettes aren't delayed
-            if (nes->ppu.vram_addr > 0x3F000) {
+            if (nes->ppu.vram_addr > 0x3F00) {
                 data = nes->ppu.vram_latched_read;
             }
-            ++nes->ppu.vram_addr;
+            // do reads increase the addr???
+            // ++nes->ppu.vram_addr;
+            // nes->ppu.vram_addr &= 0x3FFF;
             break;
 
         /* write only regs return current latched value. */
@@ -146,7 +148,7 @@ static inline void NES_ppu_register_write(struct NES_Core* nes, uint16_t addr, u
         case 0x0:
             nes->ppu.ctrl = value;
             // this inc is used for $2007 when writing, the addr is incremented
-            nes->ppu.vram_addr_increment = nes->ppu._ctrl.vram_addr ? 32 : 1;
+            nes->ppu.vram_addr_increment = ctrl_get_vram_addr(nes) ? 32 : 1;
             break;
 
         case 0x1:
@@ -220,8 +222,9 @@ static inline void NES_ppu_register_write(struct NES_Core* nes, uint16_t addr, u
         case 0x7:
             // printf("ppu write 0x%04X\n", nes->ppu.vram_addr);
             NES_ppu_write(nes, nes->ppu.vram_addr, value);
-            // nes->ppu.vram_addr += nes->ppu.vram_addr_increment;
-            nes->ppu.vram_addr++;
+            nes->ppu.vram_addr += nes->ppu.vram_addr_increment;
+            // ++nes->ppu.vram_addr;
+            nes->ppu.vram_addr &= 0x3FFF;
             break;
     }
 }

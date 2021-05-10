@@ -1,6 +1,6 @@
-#include "core/nes.h"
-#include "core/internal.h"
-#include "core/apu/apu.h"
+#include "../nes.h"
+#include "../internal.h"
+#include "apu.h"
 
 #include <assert.h>
 
@@ -122,6 +122,7 @@ static void frame_sequencer_clock(struct NES_Core* nes) {
 }
 
 static inline int8_t builtin_mixer(const struct NES_Core* nes, const struct GB_MixerData data) {
+    (void)nes;
     // this mode is just for testing each channel
     // it will be removed at somepoint!
     #define MODE 0

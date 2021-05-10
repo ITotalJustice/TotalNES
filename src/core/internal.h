@@ -83,7 +83,7 @@ struct NES_Core; // fwd
 
 
 bool NES_has_mapper(const uint8_t mapper);
-int NES_mapper_setup(struct NES_Core* nes, uint8_t mapper);
+bool NES_mapper_setup(struct NES_Core* nes, uint8_t mapper);
 
 void NES_cpu_run(struct NES_Core* nes);
 void NES_ppu_run(struct NES_Core* nes, const uint16_t cycles_elapsed);
@@ -108,6 +108,42 @@ uint8_t NES_joypad_read_port_0(struct NES_Core* nes);
 uint8_t NES_apu_io_read(struct NES_Core* nes, const uint16_t addr);
 void NES_apu_io_write(struct NES_Core* nes, const uint16_t addr, const uint8_t value);
 
+
+void ctrl_set_nametable(struct NES_Core* nes, uint8_t v);
+void ctrl_set_vram_addr(struct NES_Core* nes, uint8_t v);
+void ctrl_set_obj_8x8_addr(struct NES_Core* nes, uint8_t v);
+void ctrl_set_bg_addr(struct NES_Core* nes, uint8_t v);
+void ctrl_set_obj_size(struct NES_Core* nes, uint8_t v);
+void ctrl_set_master(struct NES_Core* nes, uint8_t v);
+void ctrl_set_nmi(struct NES_Core* nes, uint8_t v);
+void mask_set_greyscale(struct NES_Core* nes, uint8_t v);
+void mask_set_bg_leftmost(struct NES_Core* nes, uint8_t v);
+void mask_set_obj_leftmost(struct NES_Core* nes, uint8_t v);
+void mask_set_bg_on(struct NES_Core* nes, uint8_t v);
+void mask_set_obj_on(struct NES_Core* nes, uint8_t v);
+void mask_set_bgr(struct NES_Core* nes, uint8_t v);
+void status_set_lsb(struct NES_Core* nes, uint8_t v);
+void status_set_obj_overflow(struct NES_Core* nes, uint8_t v);
+void status_set_obj_hit(struct NES_Core* nes, uint8_t v);
+void status_set_vblank(struct NES_Core* nes, uint8_t v);
+
+uint8_t ctrl_get_nametable(const struct NES_Core* nes);
+uint8_t ctrl_get_vram_addr(const struct NES_Core* nes);
+uint8_t ctrl_get_obj_8x8_addr(const struct NES_Core* nes);
+uint8_t ctrl_get_bg_addr(const struct NES_Core* nes);
+uint8_t ctrl_get_obj_size(const struct NES_Core* nes);
+uint8_t ctrl_get_master(const struct NES_Core* nes);
+uint8_t ctrl_get_nmi(const struct NES_Core* nes);
+uint8_t mask_get_greyscale(const struct NES_Core* nes);
+uint8_t mask_get_bg_leftmost(const struct NES_Core* nes);
+uint8_t mask_get_obj_leftmost(const struct NES_Core* nes);
+uint8_t mask_get_bg_on(const struct NES_Core* nes);
+uint8_t mask_get_obj_on(const struct NES_Core* nes);
+uint8_t mask_get_bgr(const struct NES_Core* nes);
+uint8_t status_get_lsb(const struct NES_Core* nes);
+uint8_t status_get_obj_overflow(const struct NES_Core* nes);
+uint8_t status_get_obj_hit(const struct NES_Core* nes);
+uint8_t status_get_vblank(const struct NES_Core* nes);
 
 #ifdef __cplusplus
 }

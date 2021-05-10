@@ -1,7 +1,19 @@
-project('totalnes', ['c', 'cpp'],
+project('TotalNES', ['c'],
     version: '0.0.1',
+    license : 'MIT',
     default_options: [
+        # core options
         'buildtype=debug',
+        'warning_level=3',
+        'optimization=0',
+        'strip=false',
+        'werror=true',
+
+        # base options
+        'b_ndebug=if-release',
+        'b_sanitize=address,undefined',
+
+        'c_std=c99',
     ],
 )
 
@@ -34,48 +46,68 @@ includes = include_directories([
 ])
 
 cflags = [
-    # optimise
-    # '-Ofast',
-    # '-flto',
-    # '-DNDEBUG',
-
     # warns
     '-Wall',
     '-Wextra',
+    '-Werror',
+    '-Wfatal-errors',
     '-Wpedantic',
-    '-Wswitch-enum',
+    '-Wshadow',
+    '-Wdouble-promotion',
+    '-Wformat=2',
+    '-Wformat-overflow=2',
+    '-Wformat-truncation=1',
+    '-Wmissing-include-dirs',
+    '-Wstrict-aliasing=2',
+    '-Walloca',
     '-Wduplicated-branches',
     '-Wduplicated-cond',
-    '-Wshadow',
-    '-Wfatal-errors',
-    '-Wdouble-promotion',
-    '-Wframe-larger-than=300KB',
+    '-Wwrite-strings',
+    '-Wdate-time',
+    '-Wsizeof-pointer-memaccess',
+    '-Wlogical-op',
+    '-Wpacked',
+    '-Wredundant-decls',
+    '-Wnested-externs',
+    '-Winline',
+
+    '-ftrapv',
+    '-freg-struct-return',
+    '-fno-common',
+
+    '-Wno-unused-function',
+
+    # these also need to be added to the linker!
+    '-fsanitize=address',
+    '-fsanitize=leak',
+    '-fsanitize=undefined',
+    '-fsanitize=pointer-compare',
+    '-fsanitize=pointer-subtract',
+    '-fstack-protector-all',
 
     '-DNES_DEBUG',
 ]
 
-cppflags = [
-    '-std=gnu++17',
-    '-Wuseless-cast',
-    '-fdevirtualize-at-ltrans',
-    '-Wsuggest-final-types',
-]
-
 linkflags = [
-    # '-Wl,-subsystem,windows',
-    # '-s',
+    '-fsanitize=address',
+    '-fsanitize=leak',
+    '-fsanitize=undefined',
+    '-fsanitize=pointer-compare',
+    '-fsanitize=pointer-subtract',
+    '-fstack-protector-all',
 ]
 
-# subdir('res')
-
-executable(
-    'totalnes',
-    # res, # set the icon
+exe = executable(
+    'TotalNES',
     [ source ],
-    dependencies : [ dependencies ] ,
-    install: false,
+    dependencies : [ dependencies ],
+    install: true,
     include_directories: [ includes ],
     c_args: [ cflags ],
-    cpp_args: [ cppflags, cflags ],
-    link_args: [ linkflags ]
+    link_args: [ linkflags ],
 )
+
+
+# scripts
+run_target('cppcheck',
+  command : 'scripts/cppcheck.sh')

@@ -1,6 +1,6 @@
-#include "core/nes.h"
-#include "core/internal.h"
-#include "core/apu/apu.h"
+#include "../nes.h"
+#include "../internal.h"
+#include "apu.h"
 
 #include <assert.h>
 
@@ -98,6 +98,7 @@ void clock_square2_sweep(struct NES_Core* nes) {
 
 void clock_square2_duty(struct NES_Core* nes) {
     ++SQUARE2_CHANNEL.duty_index;
+    SQUARE2_CHANNEL.duty_index &= 0x7;
 }
 
 int8_t sample_square2(const struct NES_Core* nes) {

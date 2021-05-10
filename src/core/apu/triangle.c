@@ -1,6 +1,6 @@
-#include "core/nes.h"
-#include "core/internal.h"
-#include "core/apu/apu.h"
+#include "../nes.h"
+#include "../internal.h"
+#include "apu.h"
 
 #include <assert.h>
 
@@ -42,6 +42,7 @@ void clock_triangle_linear(struct NES_Core* nes) {
 
 void clock_triangle_duty(struct NES_Core* nes) {
     ++TRIANGLE_CHANNEL.duty_index;
+    TRIANGLE_CHANNEL.duty_index &= 0x1F;
 }
 
 int8_t sample_triangle(const struct NES_Core* nes) {

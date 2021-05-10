@@ -1,6 +1,6 @@
-#include "core/nes.h"
-#include "core/internal.h"
-#include "core/apu/apu.h"
+#include "../nes.h"
+#include "../internal.h"
+#include "apu.h"
 
 #include <assert.h>
 
@@ -40,7 +40,7 @@ void NES_apu_io_write(struct NES_Core* nes, const uint16_t addr, const uint8_t v
         case 0x01:
             SQUARE1_CHANNEL.sweep_enabled = value >> 7;
             SQUARE1_CHANNEL.sweep_period = (value >> 4) & 0x7;
-            SQUARE1_CHANNEL.sweep_negate = value >> 3;
+            SQUARE1_CHANNEL.sweep_negate = (value >> 3) & 0x1;
             SQUARE1_CHANNEL.sweep_shift = value & 0x7;
             break;
 
@@ -65,7 +65,7 @@ void NES_apu_io_write(struct NES_Core* nes, const uint16_t addr, const uint8_t v
         case 0x05:
             SQUARE2_CHANNEL.sweep_enabled = value >> 7;
             SQUARE2_CHANNEL.sweep_period = (value >> 4) & 0x7;
-            SQUARE2_CHANNEL.sweep_negate = value >> 3;
+            SQUARE2_CHANNEL.sweep_negate = (value >> 3) & 0x1;
             SQUARE2_CHANNEL.sweep_shift = value & 0x7;
             break;
 

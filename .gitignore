@@ -57,6 +57,7 @@ roms/
 build/
 *.raw
 audio_samples/
+run.sh
 
 # msvc
 TotalNES/.vs
