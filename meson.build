@@ -45,47 +45,54 @@ includes = include_directories([
     'src',
 ])
 
-cflags = [
-    # warns
-    '-Wall',
-    '-Wextra',
-    '-Werror',
-    '-Wfatal-errors',
-    '-Wpedantic',
-    '-Wshadow',
-    '-Wdouble-promotion',
-    '-Wformat=2',
-    '-Wformat-overflow=2',
-    '-Wformat-truncation=1',
-    '-Wmissing-include-dirs',
-    '-Wstrict-aliasing=2',
-    '-Walloca',
-    '-Wduplicated-branches',
-    '-Wduplicated-cond',
-    '-Wwrite-strings',
-    '-Wdate-time',
-    '-Wsizeof-pointer-memaccess',
-    '-Wlogical-op',
-    '-Wpacked',
-    '-Wredundant-decls',
-    '-Wnested-externs',
-    '-Winline',
+c_flags = [
+   '-DNES_DEBUG', 
+]
 
-    '-ftrapv',
-    '-freg-struct-return',
-    '-fno-common',
+c_warnings = [
+  '-Wall',
+  '-Wextra',
+  '-Werror',
+  '-Wfatal-errors',
+  '-Wpedantic',
+  '-Wshadow',
+  '-Wdouble-promotion',
+  '-Wformat=2',
+  '-Wformat-overflow=2',
+  '-Wformat-truncation=1',
+  '-Wundef',
+  '-Wmissing-include-dirs',
+  '-Wstrict-aliasing=2',
+  '-Walloca',
+  '-Wduplicated-branches',
+  '-Wduplicated-cond',
+  '-Wwrite-strings',
+  '-Wdate-time',
+  '-Wsizeof-pointer-memaccess',
+  '-Wlogical-op',
+  '-Wpacked',
+  '-Wredundant-decls',
+  '-Wnested-externs',
+  '-Winline',
+  '-Wcast-qual',
+  '-Wcast-align',
+  '-Wpointer-arith',
+  '-Winit-self',
+  '-Wswitch-enum',
+  '-Wstrict-prototypes',
+  #'-Wmissing-prototypes',
+  '-Wredundant-decls',
+  '-Wfloat-equal',
+  '-Wvla',
+  #'-Wc++-compat',
+  #'-Wconversion',
 
-    '-Wno-unused-function',
-
-    # these also need to be added to the linker!
-    '-fsanitize=address',
-    '-fsanitize=leak',
-    '-fsanitize=undefined',
-    '-fsanitize=pointer-compare',
-    '-fsanitize=pointer-subtract',
-    '-fstack-protector-all',
-
-    '-DNES_DEBUG',
+  '-fsanitize=address',
+  '-fsanitize=leak',
+  '-fsanitize=undefined',
+  '-fsanitize=pointer-compare',
+  '-fsanitize=pointer-subtract',
+  '-fstack-protector-all',
 ]
 
 linkflags = [
@@ -103,10 +110,9 @@ exe = executable(
     dependencies : [ dependencies ],
     install: true,
     include_directories: [ includes ],
-    c_args: [ cflags ],
+    c_args: [ c_warnings, c_flags ],
     link_args: [ linkflags ],
 )
-
 
 # scripts
 run_target('cppcheck',

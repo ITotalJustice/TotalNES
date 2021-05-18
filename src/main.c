@@ -55,48 +55,49 @@ static void core_apu_callback(struct NES_Core* nes, void* user, struct NES_ApuCa
 }
 
 int main(int argc, char** argv) {
-    if (argc < 2) {
-        fprintf(stderr, "missing args\n");
-        exit(-1);
-    }
+  if (argc < 2) {
+      fprintf(stderr, "missing args\n");
+      exit(-1);
+  }
 
 	size_t rom_size = 0;
+
 	if (!read_file(argv[1], ROM_BUFFER, &rom_size)) {
 		exit(-1);
 	}
 
-    if (!NES_loadrom(&nes_core, ROM_BUFFER, rom_size)) {
-        fprintf(stderr, "failed to open file: %s\n", argv[1]);
-        exit(-1);
-    }
+  if (!nes_loadrom(&nes_core, ROM_BUFFER, rom_size)) {
+    fprintf(stderr, "failed to open file: %s\n", argv[1]);
+    exit(-1);
+  }
 
-    // SDL_setenv("SDL_AUDIODRIVER", "disk", 1);
-    
-    SDL_Init(SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_EVENTS);
+  // SDL_setenv("SDL_AUDIODRIVER", "disk", 1);
+  
+  SDL_Init(SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_EVENTS);
 
 	const SDL_AudioSpec wanted = {
-        .freq = 48000,
-        .format = AUDIO_S8,
-        .channels = 1,
-        .silence = 0, // calculated
-        .samples = 512,
-        .padding = 0,
-        .size = 0, // calculated
-        .callback = NULL,
-        .userdata = NULL
-    };
+    .freq = 48000,
+    .format = AUDIO_S8,
+    .channels = 1,
+    .silence = 0, // calculated
+    .samples = 512,
+    .padding = 0,
+    .size = 0, // calculated
+    .callback = NULL,
+    .userdata = NULL
+  };
 
-    AUDIO_DEVICE_ID = SDL_OpenAudioDevice(NULL, 0, &wanted, NULL, 0);
+  AUDIO_DEVICE_ID = SDL_OpenAudioDevice(NULL, 0, &wanted, NULL, 0);
 
-    if (AUDIO_DEVICE_ID == 0) {
-        printf("failed to find valid audio device\n");
-        return -1;
-    }
-    
-    SDL_PauseAudioDevice(AUDIO_DEVICE_ID, 0);
+  if (AUDIO_DEVICE_ID == 0) {
+    printf("failed to find valid audio device\n");
+    return -1;
+  }
+  
+  SDL_PauseAudioDevice(AUDIO_DEVICE_ID, 0);
 
 	// set the audio callback
-	NES_set_apu_callback(&nes_core, core_apu_callback, NULL);
+	nes_set_apu_callback(&nes_core, core_apu_callback);
 
 	SDL_Window* window = SDL_CreateWindow(
 		"TotalNES",
@@ -114,9 +115,9 @@ int main(int argc, char** argv) {
 		NES_SCREEN_WIDTH, NES_SCREEN_HEIGHT
 	);
 
-    bool quit = false;
+  bool quit = false;
 
-    while (!quit) {
+  while (!quit) {
 		SDL_Event e;
 		while (SDL_PollEvent(&e)) {
 			if (e.type == SDL_QUIT) quit = true;
@@ -125,19 +126,21 @@ int main(int argc, char** argv) {
 				bool down = e.type == SDL_KEYDOWN;
 
 				switch (e.key.keysym.sym) {
-					case SDLK_x: NES_set_button(&nes_core, NES_BUTTON_A, down); break;
-					case SDLK_z: NES_set_button(&nes_core, NES_BUTTON_B, down); break;
-					case SDLK_RETURN: NES_set_button(&nes_core, NES_BUTTON_START, down); break;
-					case SDLK_SPACE: NES_set_button(&nes_core, NES_BUTTON_SELECT, down); break;
-					case SDLK_DOWN: NES_set_button(&nes_core, NES_BUTTON_DOWN, down); break;
-					case SDLK_UP: NES_set_button(&nes_core, NES_BUTTON_UP, down); break;
-					case SDLK_LEFT: NES_set_button(&nes_core, NES_BUTTON_LEFT, down); break;
-					case SDLK_RIGHT: NES_set_button(&nes_core, NES_BUTTON_RIGHT, down); break;
-				}
+					case SDLK_x: nes_set_button(&nes_core, NES_BUTTON_A, down); break;
+					case SDLK_z: nes_set_button(&nes_core, NES_BUTTON_B, down); break;
+					case SDLK_RETURN: nes_set_button(&nes_core, NES_BUTTON_START, down); break;
+					case SDLK_SPACE: nes_set_button(&nes_core, NES_BUTTON_SELECT, down); break;
+					case SDLK_DOWN: nes_set_button(&nes_core, NES_BUTTON_DOWN, down); break;
+					case SDLK_UP: nes_set_button(&nes_core, NES_BUTTON_UP, down); break;
+					case SDLK_LEFT: nes_set_button(&nes_core, NES_BUTTON_LEFT, down); break;
+					case SDLK_RIGHT: nes_set_button(&nes_core, NES_BUTTON_RIGHT, down); break;
+				
+          case SDLK_ESCAPE: quit = true; break;
+        }
 			}
 		}
 
-		NES_run_frame(&nes_core);
+		nes_run_frame(&nes_core);
 
 		SDL_RenderClear(renderer);
 		SDL_RenderCopy(renderer, texture, NULL, NULL);
@@ -152,5 +155,5 @@ int main(int argc, char** argv) {
 
 	SDL_Quit();
 
-    return 0;
+  return 0;
 }
