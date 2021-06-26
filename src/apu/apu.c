@@ -5,12 +5,6 @@
 #include <assert.h>
 
 
-enum
-{
-    SAMPLE_RATE = NES_CPU_CYCLES / 48000,
-};
-
-
 const bool SQUARE_DUTY[4][8] =
 {
     [0] = { 0, 1, 0, 0, 0, 0, 0, 0 }, // (12.5%)
@@ -104,7 +98,8 @@ static void frame_sequencer_clock(struct NES_Core* nes)
         APU.frame_sequencer.step = (APU.frame_sequencer.step + 1) % 4;
     }
 
-    else {
+    else
+    {
         switch (APU.frame_sequencer.step)
         {
             case 0:
@@ -134,108 +129,91 @@ static void frame_sequencer_clock(struct NES_Core* nes)
     }
 }
 
-static inline int8_t builtin_mixer(const struct NES_Core* nes, const struct GB_MixerData data)
-{
-  (void)nes;
-  // this mode is just for testing each channel
-  // it will be removed at somepoint!
-  #define MODE 0
-
-  #if MODE == 3
-      return data.triangle * NES_VOLUME_SCALE;
-
-  #elif MODE == 4
-      return data.noise * NES_VOLUME_SCALE;
-  #else
-      return ((data.square1 * NES_VOLUME_SCALE) + (data.square2 * NES_VOLUME_SCALE) +
-              (data.triangle * NES_VOLUME_SCALE) + (data.noise * NES_VOLUME_SCALE)) / 4;
-  #endif
-}
-
-
 static void sample(struct NES_Core* nes)
 {
-    const struct GB_MixerData mixer_data = {
-        .square1 = sample_square1(nes) * is_square1_enabled(nes),
-        .square2 = sample_square2(nes) * is_square2_enabled(nes),
-        .triangle = sample_triangle(nes) * is_triangle_enabled(nes),
-        .noise = sample_noise(nes) * is_noise_enabled(nes),
+    struct NES_ApuCallbackData data =
+    {
+        .square1    = sample_square1(nes)   * is_square1_enabled(nes),
+        .square2    = sample_square2(nes)   * is_square2_enabled(nes),
+        .triangle   = sample_triangle(nes)  * is_triangle_enabled(nes),
+        .noise      = sample_noise(nes)     * is_noise_enabled(nes),
     };
 
-    // check if the user has set it's own mixer callback!
-    if (nes->mixer_cb != NULL)
-    {
-        APU.sample_data.samples[APU.sample_index] = nes->mixer_cb(
-            nes, nes->user_data, mixer_data
-        );
-    }
-
-    // use our own!
-    else {
-        APU.sample_data.samples[APU.sample_index] = builtin_mixer(
-            nes, mixer_data
-        );
-    }
-
-    // mono
-    ++APU.sample_index;
-
-    if (APU.sample_index >= ARRAY_SIZE(APU.sample_data.samples))
-    {
-        APU.sample_index = 0;
-
-        if (nes->apu_cb != NULL)
-        {
-            nes->apu_cb(nes, nes->user_data, &APU.sample_data);
-        }
-    }
+    nes->apu_callback(nes->apu_callback_user, &data);
 }
 
 void nes_apu_run(struct NES_Core* nes, const uint16_t cycles_elapsed)
 {
-    // atm im multiplying the freq by 2, it sounds too high pitch at normal
-    // frequency for some reason...
-    // i read that its 2 cpu cycles for 1 apu cycle, so maybe thats why?
-
-    SQUARE1_CHANNEL.timer -= cycles_elapsed;
-    if (SQUARE1_CHANNEL.timer <= 0)
+    if (SQUARE1_CHANNEL.timer > 0 || get_square1_freq(nes))
     {
-        SQUARE1_CHANNEL.timer += get_square1_freq(nes) << 1;
-        clock_square1_duty(nes);
+        SQUARE1_CHANNEL.timer -= cycles_elapsed;
+        if (SQUARE1_CHANNEL.timer <= 0)
+        {
+            SQUARE1_CHANNEL.timer += get_square1_freq(nes) << 1;
+            clock_square1_duty(nes);
+        }
     }
 
-    SQUARE2_CHANNEL.timer -= cycles_elapsed;
-    if (SQUARE2_CHANNEL.timer <= 0)
+    if (SQUARE2_CHANNEL.timer > 0 || get_square2_freq(nes))
     {
-        SQUARE2_CHANNEL.timer += get_square2_freq(nes) << 1;
-        clock_square2_duty(nes);
+        SQUARE2_CHANNEL.timer -= cycles_elapsed;
+        if (SQUARE2_CHANNEL.timer <= 0)
+        {
+            SQUARE2_CHANNEL.timer += get_square2_freq(nes) << 1;
+            clock_square2_duty(nes);
+        }
     }
 
-    TRIANGLE_CHANNEL.timer -= cycles_elapsed;
-    if (TRIANGLE_CHANNEL.timer <= 0)
+    if (TRIANGLE_CHANNEL.timer > 0 || get_triangle_freq(nes))
     {
-        TRIANGLE_CHANNEL.timer += get_triangle_freq(nes);
-        clock_triangle_duty(nes);
+        TRIANGLE_CHANNEL.timer -= cycles_elapsed;
+        if (TRIANGLE_CHANNEL.timer <= 0)
+        {
+            TRIANGLE_CHANNEL.timer += get_triangle_freq(nes);
+            clock_triangle_duty(nes);
+        }
     }
 
-    NOISE_CHANNEL.timer -= cycles_elapsed;
-    if (NOISE_CHANNEL.timer <= 0)
+    if (NOISE_CHANNEL.timer > 0 || get_noise_freq(nes))
     {
-        NOISE_CHANNEL.timer += get_noise_freq(nes);
-        clock_noise_lsfr(nes);
+        NOISE_CHANNEL.timer -= cycles_elapsed;
+        if (NOISE_CHANNEL.timer <= 0)
+        {
+            NOISE_CHANNEL.timer += get_noise_freq(nes);
+            clock_noise_lsfr(nes);
+        }
     }
 
     APU.frame_sequencer.timer -= cycles_elapsed;
+    
     while (APU.frame_sequencer.timer <= 0)
     {
-        APU.frame_sequencer.timer += NES_APU_FRAME_SEQUENCER_STEP_RATE << 1;
+        APU.frame_sequencer.timer += APU_FRAME_SEQUENCER_STEP_RATE << 1;
         frame_sequencer_clock(nes);
     }
 
-    APU.sample_cycles -= cycles_elapsed;
-    while (APU.sample_cycles <= 0)
+    // only tick if the user has provided a sample callback
+    if (nes->apu_callback && nes->apu_callback_freq)
     {
-        APU.sample_cycles += SAMPLE_RATE;
-        sample(nes);
+        nes->apu_callback_counter -= cycles_elapsed;
+
+        if (nes->apu_callback_counter <= 0)
+        {
+            nes->apu_callback_counter += (CPU_CLOCK / nes->apu_callback_freq);
+            sample(nes);
+        }
     }
+}
+
+void nes_apu_init(struct NES_Core* nes)
+{
+    // setup noise lsfr
+    nes->apu.noise.lsfr = 0x7FF;
+
+    // i assume all channels start enabled...
+    nes->apu.status.square1_enable = 1;
+    nes->apu.status.square2_enable = 1;
+    nes->apu.status.triangle_enable = 1;
+    nes->apu.status.noise_enable = 1;
+    nes->apu.status.dmc_enable = 1;
 }

@@ -83,13 +83,13 @@
 
 #define INDX() do { \
     const uint8_t oprand_tmp = read8(REG_PC++); \
-    oprand = (uint16_t)read8(oprand_tmp + REG_X + 1) << 8; \
-    oprand |= read8(oprand_tmp + REG_X); \
+    oprand = (uint16_t)read8((oprand_tmp + REG_X + 1) & 0xFF) << 8; \
+    oprand |= read8((oprand_tmp + REG_X) & 0xFF); \
 } while(0)
 
 #define INDY() do { \
     const uint8_t oprand_tmp = read8(REG_PC++); \
-    oprand = (uint16_t)read8(oprand_tmp + 1) << 8; \
+    oprand = (uint16_t)read8((oprand_tmp + 1) & 0xFF) << 8; \
     oprand |= read8(oprand_tmp); \
     PAGECROSS(oprand, REG_Y); \
     oprand += REG_Y; \

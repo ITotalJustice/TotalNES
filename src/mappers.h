@@ -11,7 +11,7 @@ extern "C" {
 /* https://wiki.nesdev.com/w/index.php/NROM */
 struct NES_Mapper_000
 {
-    uint8_t* prg_rom_slots[2];
+    const uint8_t* prg_rom_slots[2];
     uint8_t* prg_ram_slots[2];
     uint8_t* chr_ram_slots[4];
     uint8_t prg_ram[0x1000];    /* 4k */

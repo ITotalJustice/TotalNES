@@ -32,21 +32,21 @@ struct OpcodeInfo {
 	const unsigned char illegal; /* boolean. */
 };
 
-static const char* ADDRESSING_MODE_STR[13] = {
-	"implied",
-	"accumulator",
-	"relative",
-	"immediate",
-	"absolute",
-	"absolute,X",
-	"absolute,Y",
-	"zeropage",
-	"zeropage,X",
-	"zeropage,Y",
-	"(indirect)",
-	"(indirect,X)",
-	"(indirect),Y"
-};
+// static const char* ADDRESSING_MODE_STR[13] = {
+// 	"implied",
+// 	"accumulator",
+// 	"relative",
+// 	"immediate",
+// 	"absolute",
+// 	"absolute,X",
+// 	"absolute,Y",
+// 	"zeropage",
+// 	"zeropage,X",
+// 	"zeropage,Y",
+// 	"(indirect)",
+// 	"(indirect,X)",
+// 	"(indirect),Y"
+// };
 
 static const struct OpcodeInfo OPCODE_INFO_TABLE[0x100] = {
 	{"BRK","---1--","Force Break",0x00,0,1,7,0,0,0}, {"ORA","NZ----","OR Memory with Accumulator",0x01,11,2,6,0,0,0}, {"STP","------","Stop program counter (processor lock up)",0x02,0,1,0,0,0,1}, {"SLO","NZC---","Shift left memory then OR A register with result",0x03,11,2,8,0,0,1}, {"DOP","------","No Operation",0x04,7,2,3,0,0,1}, {"ORA","NZ----","OR Memory with Accumulator",0x05,7,2,3,0,0,0}, {"ASL","NZC---","Shift Left One Bit (Memory or Accumulator)",0x06,7,2,5,0,0,0}, {"SLO","NZC---","Shift left memory then OR A register with result",0x07,7,2,5,0,0,1}, {"PHP","------","Push Processor Status on Stack",0x08,0,1,3,0,0,0}, {"ORA","NZ----","OR Memory with Accumulator",0x09,3,2,2,0,0,0}, {"ASL","NZC---","Shift Left One Bit (Memory or Accumulator)",0x0A,1,1,2,0,0,0}, {"-","------","-",0x0B,0,0,0,0,0,0}, {"TOP","------","No Operation",0x0C,4,3,4,0,0,1}, {"ORA","NZ----","OR Memory with Accumulator",0x0D,4,3,4,0,0,0}, {"ASL","NZC---","Shift Left One Bit (Memory or Accumulator)",0x0E,4,3,6,0,0,0}, {"SLO","NZC---","Shift left memory then OR A register with result",0x0F,4,3,6,0,0,1}, 

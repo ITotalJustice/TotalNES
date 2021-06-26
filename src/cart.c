@@ -53,14 +53,17 @@ static inline uint8_t mapper_read_000(struct NES_Core* nes, uint16_t addr)
         // [PPU]
         case 0x0:
             return nes->cart.mapper._000.chr_ram_slots[0][addr & 0x0FFF];
+        
         case 0x1:
             return nes->cart.mapper._000.chr_ram_slots[1][addr & 0x0FFF];
 
         // [CPU]
         case 0x8: case 0x9: case 0xA: case 0xB:
             return nes->cart.mapper._000.prg_rom_slots[0][addr & 0x3FFF];
+
         case 0xC: case 0xD: case 0xE: case 0xF:
             return nes->cart.mapper._000.prg_rom_slots[1][addr & 0x3FFF];
+        
         default:
             return 0xFF;
     }
@@ -74,6 +77,7 @@ static inline void mapper_write_000(struct NES_Core* nes, uint16_t addr, uint8_t
         case 0x0:
             nes->cart.mapper._000.chr_ram_slots[0][addr & 0x0FFF] = value;
             break;
+
         case 0x1:
             nes->cart.mapper._000.chr_ram_slots[1][addr & 0x0FFF] = value;
             break;
@@ -132,8 +136,7 @@ uint8_t nes_cart_read(struct NES_Core* nes, uint16_t addr)
     {
         case NES_MAPPER_000: return mapper_read_000(nes, addr);
 
-        default:
-            NES_log_fatal("invalid mapper read\n");
+        default: NES_log_fatal("invalid mapper read\n");
     }
 
     UNREACHABLE(0xFF);
@@ -145,8 +148,7 @@ void nes_cart_write(struct NES_Core* nes, uint16_t addr, uint8_t value)
     {
         case NES_MAPPER_000: mapper_write_000(nes, addr, value); break;
 
-        default:
-            NES_log_fatal("invalid mapper write\n");
+        default: NES_log_fatal("invalid mapper write\n");
     }
 }
 

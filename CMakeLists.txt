@@ -12,15 +12,16 @@ option(NES_SINGLE_FILE "include all src in single.c" OFF)
 option(NES_DEBUG "enable debug" OFF)
 option(NES_DEV "enables debug and sanitizers" OFF)
 
+option(NES_EXAMPLE_SDL "" OFF)
 option(NES_EXAMPLE_ALL "builds all examples" OFF)
 
-option(NES_TEST_ROMRUNNER "" OFF)
-# option(NES_TEST_SANITY "build test that ensures the lib can be built" OFF)
-# option(NES_TEST_BENCH "" OFF)
+option(NES_TEST_AUDIO "" OFF)
+option(NES_TEST_GFX "" OFF)
 option(NES_TEST_ALL "build all tests" OFF)
 
 
 if (NES_EXAMPLE_ALL)
+    set(NES_EXAMPLE_SDL ON)
 endif()
 
 if (NES_DEV)
@@ -28,9 +29,10 @@ if (NES_DEV)
 endif()
 
 if (NES_TEST_ALL)
-    set(NES_TEST_ROMRUNNER ON)
+    set(NES_TEST_AUDIO ON)
+    set(NES_TEST_GFX ON)
 endif()
 
 add_subdirectory(src)
-# add_subdirectory(tests)
+add_subdirectory(tests)
 add_subdirectory(examples)

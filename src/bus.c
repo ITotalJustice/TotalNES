@@ -60,12 +60,7 @@ static inline void nes_cpu_io_write(struct NES_Core* nes, uint16_t addr, uint8_t
             break;
 
         case 0x16: /* strobe */
-            nes->jp.strobe = value & 0x1;
-            if (nes->jp.strobe)
-            {
-                nes->jp.latch_a = nes->jp.buttons_a;
-                nes->jp.latch_b = nes->jp.buttons_b;
-            }
+            nes_joypad_write(nes, value);
             break;
     }
 }
@@ -96,12 +91,6 @@ static inline uint8_t nes_ppu_register_read(struct NES_Core* nes, uint16_t addr)
             break;
 
         case 0x7:
-            if (!status_get_vblank(nes))
-            {
-                NES_log("WARN: reading from vram outside vblank!\n");
-                return 0xFF; // maybe it returns latch?
-            }
-
             // this returns the previous value as reads are delayed!
             data = nes->ppu.vram_latched_read;
             // save the new value
@@ -111,6 +100,8 @@ static inline uint8_t nes_ppu_register_read(struct NES_Core* nes, uint16_t addr)
             {
                 data = nes->ppu.vram_latched_read;
             }
+            nes->ppu.vram_addr += nes->ppu.vram_addr_increment;
+            nes->ppu.vram_addr &= 0x3FFF;
             break;
 
             /* write only regs return current latched value. */
@@ -172,7 +163,7 @@ static inline void nes_ppu_register_write(struct NES_Core* nes, uint16_t addr, u
             {
                 // set the new vram addr
                 nes->ppu.vram_addr = (nes->ppu.write_flipflop << 8) | value;
-                assert(nes->ppu.vram_addr <= 0x3FFF);
+                nes->ppu.vram_addr &= 0x3FFF;
                 // reset the write_flipflop
                 nes->ppu.write_flipflop = 0;
                 nes->ppu.has_first_8bit = false;
@@ -188,12 +179,6 @@ static inline void nes_ppu_register_write(struct NES_Core* nes, uint16_t addr, u
             break;
 
         case 0x7:
-            if (!status_get_vblank(nes))
-            {
-                // NES_log("WARN: writing to vram outside vblank!\n");
-                return;
-            }
-
             nes_ppu_write(nes, nes->ppu.vram_addr, value);
             nes->ppu.vram_addr += nes->ppu.vram_addr_increment;
             nes->ppu.vram_addr &= 0x3FFF;
@@ -229,7 +214,10 @@ uint8_t nes_cpu_read(struct NES_Core* nes, uint16_t addr)
             {
                 return nes_cpu_io_read(nes, addr);
             }
-            return 0xFF; // cart expansion
+            else
+            {
+                return 0xFF; // cart expansion
+            }
 
             case 0x3:
             case 0x4:

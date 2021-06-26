@@ -12,7 +12,7 @@ struct RgbTriple
 };
 
 // todo: generate this table again but use BGR555 instead
-static struct RgbTriple NES_RGB888_PALETTE[0x40] =
+static const struct RgbTriple NES_RGB888_PALETTE[64] =
 {
     [0x00] = { .r = 0x54, .g = 0x54, .b = 0x54 },
     [0x01] = { .r = 0x00, .g = 0x1E, .b = 0x74 },
@@ -86,11 +86,6 @@ static struct RgbTriple NES_RGB888_PALETTE[0x40] =
 void ctrl_set_nametable(struct NES_Core* nes, uint8_t v)
 {
     nes->ppu.ctrl = (nes->ppu.ctrl & ~(0x03 << 0)) | ((v & 0x03) << 0);
-}
-
-uint8_t ctrl_get_nametable(const struct NES_Core* nes)
-{
-    return (nes->ppu.ctrl >> 0) & 0x03;
 }
 
 void ctrl_set_vram_addr(struct NES_Core* nes, uint8_t v)
@@ -253,20 +248,44 @@ uint8_t status_get_vblank(const struct NES_Core* nes)
     return (nes->ppu.status >> 7) & 0x01;
 }
 
+static uint16_t ppu_get_nametable_addr(const struct NES_Core* nes)
+{
+    switch ((nes->ppu.ctrl >> 0) & 0x03)
+    {
+        case 0: return 0x2000;
+        case 1: return 0x2400;
+        case 2: return 0x2800;
+        case 3: return 0x2C00;
+    }
+
+    return 0xFF;
+}
+
+static uint16_t ppu_get_bg_pattern_table_addr(const struct NES_Core* nes)
+{
+    return IS_BIT_SET(nes->ppu.ctrl, 4) * 0x1000;
+}
+
+static uint16_t ppu_get_obj_pattern_table_addr(const struct NES_Core* nes)
+{
+    return IS_BIT_SET(nes->ppu.ctrl, 3) * 0x1000;
+}
+
 // nametable is 0x3C0 bytes, then 0x40 bytes of attributes
 struct BgAttribute
 {
-      uint8_t upper_left  /*: 2*/;
-      uint8_t upper_right /*: 2*/;
-      uint8_t lower_left  /*: 2*/;
-      uint8_t lower_right /*: 2*/;
+    uint8_t upper_left  /*: 2*/;
+    uint8_t upper_right /*: 2*/;
+    uint8_t lower_left  /*: 2*/;
+    uint8_t lower_right /*: 2*/;
 };
 
 // as its 64 bytes next to each other for attr data,
 // could use simd to set all the data into the array
 static inline struct BgAttribute gen_bg_attr(const uint8_t v)
 {
-    return (struct BgAttribute){
+    return (struct BgAttribute)
+    {
         .upper_left   = (v >> 0) & 0x3,
         .upper_right  = (v >> 2) & 0x3,
         .lower_left   = (v >> 4) & 0x3,
@@ -276,8 +295,8 @@ static inline struct BgAttribute gen_bg_attr(const uint8_t v)
 
 struct ObjAttribute
 {
-    bool vertical_flip;
-    bool horizontal_flip;
+    bool yflip;
+    bool xflip;
     bool bg_prio;
     uint8_t palette;
 };
@@ -285,19 +304,58 @@ struct ObjAttribute
 struct Obj
 {
     uint8_t y;
-    uint8_t num;
-    struct ObjAttribute attr;
+    uint8_t n;
+    struct ObjAttribute a;
     uint8_t x;
+};
+
+struct Sprites
+{
+    struct Obj sprite[8];
+    uint8_t count;
 };
 
 static inline struct ObjAttribute gen_ob_attr(const uint8_t v)
 {
-    return (struct ObjAttribute){
-        .vertical_flip    = (v >> 7) & 0x1,
-        .horizontal_flip  = (v >> 6) & 0x1,
-        .bg_prio          = (v >> 5) & 0x1,
-        .palette          = (v >> 0) & 0x3,
+    return (struct ObjAttribute)
+    {
+        .yflip      = (v >> 7) & 0x1,
+        .xflip      = (v >> 6) & 0x1,
+        .bg_prio    = (v >> 5) & 0x1,
+        .palette    = (v >> 0) & 0x3,
     };
+}
+
+static struct Sprites sprite_fetch(const struct NES_Core* nes)
+{
+    struct Sprites sprites = {0};
+    
+    const uint8_t sprite_size = 8;
+    const uint8_t ly = nes->ppu.scanline;
+
+    for (size_t i = 0; i < ARRAY_SIZE(nes->ppu.oam); i += 4)
+    {
+        struct Obj* sprite = &sprites.sprite[sprites.count];
+
+        sprite->y = nes->ppu.oam[i + 0];
+        sprite->n = nes->ppu.oam[i + 1];
+        sprite->a = gen_ob_attr(nes->ppu.oam[i + 2]);
+        sprite->x = nes->ppu.oam[i + 3];
+
+        // check if the y is in bounds!
+        if (ly >= sprite->y && ly < (sprite->y + sprite_size))
+        {
+            ++sprites.count;
+
+            // only 8 sprites per line!
+            if (sprites.count == 8)
+            {
+                break;
+            }
+        }
+    }
+
+    return sprites;
 }
 
 void ppu_reset(struct NES_Core* nes)
@@ -394,7 +452,7 @@ uint8_t nes_ppu_read(struct NES_Core* nes, uint16_t addr)
 
     else if (addr >= 0x3F00 && addr <= 0x3FFF)
     { /* palette ram + mirrors. */
-        return nes->ppu.pram[addr & 0x1F] | 0xC0;
+        return nes->ppu.pram[addr & 0x1F];
     }
 
     UNREACHABLE(0xFF);
@@ -456,44 +514,121 @@ void nes_ppu_write(struct NES_Core* nes, uint16_t addr, uint8_t value)
 void nes_dma(struct NES_Core* nes)
 {
     const uint16_t addr = nes->ppu.oam_addr << 8;
-    uint8_t* oam = nes->ppu.oam;
 
     // fills the entire oam!
     for (uint16_t i = 0; i < 0x100; i++)
     {
-        oam[i] = nes_cpu_read(nes, addr | i);
+        nes->ppu.oam[i] = nes_cpu_read(nes, addr | i);
     }
-
-    /* everynes says this takes 512 clock cycles. */
-    // ~~don't clock these cycles for now as i think it'll
-    // cause problems with the ppu timing.~~
-    nes->cpu.cycles += 512;
 }
 
-static void render_bg(struct NES_Core* nes, int line)
+static void ppu_write_pixel(struct NES_Core* nes, uint32_t c, uint16_t x, uint16_t y)
 {
-    // the pattern table 0/1 is selected by bit-4 in ctrl reg.
-    // for now, this impl is slow, until i add array maps!
-    const uint16_t pattern_table_addr = ctrl_get_bg_addr(nes) == 0 ? 0 : 0x1000;
-
-    (void)line;
-    (void)pattern_table_addr;
+    nes->ppu.pixels[y][x] = c;
 }
 
-static void render_obj(struct NES_Core* nes, int line)
+static struct RgbTriple get_colour_from_palette_ram(struct NES_Core* nes, uint8_t palette, uint8_t colour_id)
 {
-    struct Obj objs[64];
+    const uint8_t offset = (palette * 4) + colour_id;
+    const uint8_t index = nes->ppu.pram[offset & 0x1F];
 
-    for (unsigned i = 0; i < 64; ++i)
+    return NES_RGB888_PALETTE[index & 0x3F];
+}
+
+static void render_scanline_bg(struct NES_Core* nes, uint8_t line)
+{
+    const uint8_t row = (line >> 3) & 31;
+    const uint8_t fine_line = line & 7;
+
+    const uint16_t pattern_table_addr = ppu_get_bg_pattern_table_addr(nes);
+
+    uint16_t nametable_addr = ppu_get_nametable_addr(nes) + (row * 32);
+    uint16_t attr_table_addr = ppu_get_nametable_addr(nes) + (row * 4) + 0x3C0;
+
+    // todo: attribute table
+    for (uint8_t col = 0; col < 32; ++col)
     {
-        objs[i].y     = nes->ppu.oam[(i * 4) + 0];
-        objs[i].num   = nes->ppu.oam[(i * 4) + 1];
-        objs[i].attr  = gen_ob_attr(nes->ppu.oam[(i * 4) + 2]);
-        objs[i].x     = nes->ppu.oam[(i * 4) + 3];
-    }
+        const uint8_t tile_num = nes_ppu_read(nes, nametable_addr++);
+        const uint8_t attr_byte = nes_ppu_read(nes, attr_table_addr++);
+        const struct BgAttribute attr = gen_bg_attr(attr_byte);
 
-    (void)line;
-    (void)objs;
+        const uint8_t bit_plane0 = nes->cart.chr_rom[pattern_table_addr + fine_line + (tile_num * 16) + 0];
+        const uint8_t bit_plane1 = nes->cart.chr_rom[pattern_table_addr + fine_line + (tile_num * 16) + 8];
+
+        for (uint8_t x = 0; x < 8; ++x)
+        {
+            const uint8_t bit = 7 - x;
+
+            const uint16_t x_index = (col * 8) + x;
+
+            uint8_t palette_index = 0;
+
+            palette_index |= IS_BIT_SET(bit_plane0, bit) << 0;
+            palette_index |= IS_BIT_SET(bit_plane1, bit) << 1;
+
+            (void)attr;
+            const struct RgbTriple rgb_triple = get_colour_from_palette_ram(nes, 0, palette_index);
+
+            uint32_t colour = (rgb_triple.r << 16) | (rgb_triple.g << 8) | (rgb_triple.b);
+
+            ppu_write_pixel(nes, colour, x_index, line);
+        }
+    }
+}
+
+static void render_scanline_obj(struct NES_Core* nes, uint8_t line)
+{
+    const uint16_t pattern_table_addr = ppu_get_obj_pattern_table_addr(nes);
+    const struct Sprites sprites = sprite_fetch(nes);
+    // const uint8_t fine_line = line & 7;
+
+    for (uint8_t i = 0; i < sprites.count; ++i)
+    {
+        const struct Obj* sprite = &sprites.sprite[i];
+    
+        uint16_t pattern_index = pattern_table_addr + (sprite->n * 16);
+        //
+        if (sprite->a.yflip)
+        {
+            pattern_index += 7 - (line - sprite->y);
+        }
+        else
+        {
+            pattern_index += (line - sprite->y);
+        }
+
+        const uint8_t bit_plane0 = nes->cart.chr_rom[pattern_index + 0];
+        const uint8_t bit_plane1 = nes->cart.chr_rom[pattern_index + 8];
+
+        for (uint8_t x = 0; x < 8; ++x)
+        {
+            const uint8_t bit = sprite->a.xflip ? x : 7 - x;
+
+            const uint16_t x_index = sprite->x + x;
+
+            if (x_index > 255)
+            {
+                break;
+            }
+
+            uint8_t palette_index = 0;
+
+            palette_index |= IS_BIT_SET(bit_plane0, bit) << 0;
+            palette_index |= IS_BIT_SET(bit_plane1, bit) << 1;
+
+            // transparent
+            if (palette_index == 0)
+            {
+                continue;
+            }
+
+            const struct RgbTriple rgb_triple = get_colour_from_palette_ram(nes, sprite->a.palette + 4, palette_index);
+
+            uint32_t colour = (rgb_triple.r << 16) | (rgb_triple.g << 8) | (rgb_triple.b);
+
+            ppu_write_pixel(nes, colour, x_index, line);
+        }
+    }
 }
 
 static void render_scanline(struct NES_Core* nes, int line)
@@ -504,8 +639,8 @@ static void render_scanline(struct NES_Core* nes, int line)
     }
 
     // need to draw 256 pixels wide!
-    render_bg(nes, line);
-    render_obj(nes, line);
+    render_scanline_bg(nes, line);
+    render_scanline_obj(nes, line);
 }
 
 // there are 262 scanlines total
@@ -514,20 +649,35 @@ static void render_scanline(struct NES_Core* nes, int line)
 void nes_ppu_run(struct NES_Core* nes, const uint16_t cycles_elapsed)
 {
     (void)cycles_elapsed;
-    (void)NES_RGB888_PALETTE;
 
     ++nes->ppu.cycles;
 
     if (nes->ppu.cycles >= 341)
     {
-        render_scanline(nes, nes->ppu.scanline);
-
+        if (nes->vblank_callback)
+        {
+            render_scanline(nes, nes->ppu.scanline);
+        }
+ 
         nes->ppu.cycles = 0;
         ++nes->ppu.scanline;
+
+        // todo: remove sprite hit stub (used for super mario)
+        status_set_obj_hit(nes, 0);
+
+        if (nes->ppu.scanline == 80)
+        {
+            status_set_obj_hit(nes, 1);
+        }
 
         // vblank
         if (nes->ppu.scanline == 240)
         {
+            if (nes->vblank_callback)
+            {
+                nes->vblank_callback(nes->vblank_callback_user);
+            }
+
             // set the status to vblank
             status_set_vblank(nes, true);
 

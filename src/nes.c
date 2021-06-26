@@ -5,7 +5,19 @@
 #include <assert.h>
 
 
-void nes_reset(struct NES_Core* nes)
+bool NES_init(struct NES_Core* nes)
+{
+    if (!nes)
+    {
+        return false;
+    }
+
+    memset(nes, 0, sizeof(struct NES_Core));
+
+    return true;
+}
+
+void NES_reset(struct NES_Core* nes)
 {
     nes->cpu.A = 0;
     nes->cpu.X = 0;
@@ -18,13 +30,13 @@ void nes_reset(struct NES_Core* nes)
     nes->cpu.B = 2;
 }
 
-bool nes_is_header_valid(const struct NES_CartHeader* header)
+bool NES_is_header_valid(const struct NES_CartHeader* header)
 {
     const uint8_t ines_header =
-    header->header_id[0] == 'N' &&
-    header->header_id[1] == 'E' &&
-    header->header_id[2] == 'S' &&
-    header->header_id[3] == 0x1A;
+        header->header_id[0] == 'N' &&
+        header->header_id[1] == 'E' &&
+        header->header_id[2] == 'S' &&
+        header->header_id[3] == 0x1A;
 
     if (!ines_header)
     {
@@ -50,26 +62,25 @@ bool nes_is_header_valid(const struct NES_CartHeader* header)
     return true;
 }
 
-bool nes_loadrom(struct NES_Core* nes, uint8_t* buffer, size_t size)
+bool NES_loadrom(struct NES_Core* nes, const uint8_t* rom, size_t size)
 {
-    assert(nes && buffer && size);
-
-    nes_reset(nes);
-
-    uint8_t* rom = buffer;
+    // todo: this should happen much further down, after rom is ready
+    // to be loaded!
+    NES_reset(nes);
 
     if (!size || size < sizeof(struct NES_CartHeader))
     {
+        NES_log_err("invalid rom size\n");
         return false;
     }
 
     const struct NES_CartHeader* header = (struct NES_CartHeader*)rom;
 
     const uint8_t ines_header =
-    header->header_id[0] == 'N' &&
-    header->header_id[1] == 'E' &&
-    header->header_id[2] == 'S' &&
-    header->header_id[3] == 0x1A;
+        header->header_id[0] == 'N' &&
+        header->header_id[1] == 'E' &&
+        header->header_id[2] == 'S' &&
+        header->header_id[3] == 0x1A;
 
     if (!ines_header)
     {
@@ -118,44 +129,48 @@ bool nes_loadrom(struct NES_Core* nes, uint8_t* buffer, size_t size)
     // load from the reset vector
     nes->cpu.PC = nes_cpu_read16(nes, NES_VECTOR_RESET);
 
-    // setup noise lsfr
-    nes->apu.noise.lsfr = 0x7FF;
-
-    // i assume all channels start enabled...
-    nes->apu.status.square1_enable = 1;
-    nes->apu.status.square2_enable = 1;
-    nes->apu.status.triangle_enable = 1;
-    nes->apu.status.noise_enable = 1;
-    nes->apu.status.dmc_enable = 1;
+    nes_apu_init(nes);
 
     return true;
 }
 
-void nes_set_apu_callback(struct NES_Core* nes, NES_apu_callback_t cb)
+void NES_set_apu_callback(struct NES_Core* nes, nes_apu_callback_t cb, void* user, uint32_t freq)
 {
-    nes->apu_cb = cb;
+    nes->apu_callback = cb;
+    nes->apu_callback_user = user;
+    nes->apu_callback_freq = freq;
 }
 
-void nes_run_frame(struct NES_Core* nes)
+void NES_set_vblank_callback(struct NES_Core* nes, nes_vblank_callback_t cb, void* user)
 {
-    assert(nes);
+    nes->vblank_callback = cb;
+    nes->vblank_callback_user = user;
+}
 
+void NES_step(struct NES_Core* nes)
+{
+    nes->cpu.cycles = 0;
+
+    nes_cpu_run(nes);
+
+    // the ppu is 3-times as fast the cpu, so we clock this 3 times.
+    for (uint16_t i = 0; i < nes->cpu.cycles; ++i)
+    {
+        nes_ppu_run(nes, nes->cpu.cycles);
+        nes_ppu_run(nes, nes->cpu.cycles);
+        nes_ppu_run(nes, nes->cpu.cycles);
+    }
+
+    nes_apu_run(nes, nes->cpu.cycles);
+}
+
+void NES_run_frame(struct NES_Core* nes)
+{
     uint32_t cycles = 0;
 
-    while (cycles < NES_CPU_CYCLES_PER_FRAME)
+    while (cycles < CPU_CYCLES_PER_FRAME)
     {
-        nes_cpu_run(nes);
-
-        // the ppu is 3-times as fast the cpu, so we clock this 3 times.
-        for (uint16_t i = 0; i < nes->cpu.cycles; ++i)
-        {
-            nes_ppu_run(nes, nes->cpu.cycles);
-            nes_ppu_run(nes, nes->cpu.cycles);
-            nes_ppu_run(nes, nes->cpu.cycles);
-        }
-
-        nes_apu_run(nes, nes->cpu.cycles);
-
+        NES_step(nes);
         cycles += nes->cpu.cycles;
     }
 }

@@ -7,38 +7,34 @@ extern "C" {
 #include "types.h"
 
 
-struct NES_State;
-
-
-// DK starts with the [START] button being in this order
-// but im not sure if it's correct, it doesn't seem to work
-// when in game either
 enum NES_Button
 {
-    NES_BUTTON_A      = (1 << 7),
-    NES_BUTTON_B      = (1 << 6),
-    NES_BUTTON_SELECT = (1 << 5),
-    NES_BUTTON_START  = (1 << 4),
+    NES_BUTTON_A      = (1 << 0),
+    NES_BUTTON_B      = (1 << 1),
+    NES_BUTTON_SELECT = (1 << 2),
+    NES_BUTTON_START  = (1 << 3),
 
-    NES_BUTTON_UP     = (1 << 3),
-    NES_BUTTON_DOWN   = (1 << 2),
-    NES_BUTTON_LEFT   = (1 << 1),
-    NES_BUTTON_RIGHT  = (1 << 0),
+    NES_BUTTON_UP     = (1 << 4),
+    NES_BUTTON_DOWN   = (1 << 5),
+    NES_BUTTON_LEFT   = (1 << 6),
+    NES_BUTTON_RIGHT  = (1 << 7),
 };
 
-
 // API
-void nes_reset(struct NES_Core* nes);
+NESAPI bool NES_init(struct NES_Core* nes);
+// void NES_reset(struct NES_Core* nes);
 
-bool nes_is_header_valid(const struct NES_CartHeader* header);
+// NESAPI bool NES_is_header_valid(const struct NES_CartHeader* header);
 
-bool nes_loadrom(struct NES_Core* nes, uint8_t* buffer, size_t size);
+NESAPI bool NES_loadrom(struct NES_Core* nes, const uint8_t* rom, size_t size);
 
-void nes_run_frame(struct NES_Core* nes);
+NESAPI void NES_run_step(struct NES_Core* nes);
+NESAPI void NES_run_frame(struct NES_Core* nes);
 
-void nes_set_button(struct NES_Core* nes, enum NES_Button button, bool down);
+NESAPI void NES_set_button(struct NES_Core* nes, enum NES_Button button, bool down);
 
-void nes_set_apu_callback(struct NES_Core* nes, NES_apu_callback_t cb);
+NESAPI void NES_set_apu_callback(struct NES_Core* nes, nes_apu_callback_t cb, void* user, uint32_t freq);
+NESAPI void NES_set_vblank_callback(struct NES_Core* nes, nes_vblank_callback_t cb, void* user);
 
 #ifdef __cplusplus
 }

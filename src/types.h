@@ -4,6 +4,28 @@
 extern "C" {
 #endif
 
+#ifndef NES_DEBUG
+    #define NES_DEBUG 0
+#endif
+
+#ifndef NES_SINGLE_FILE
+    #define NES_SINGLE_FILE 0
+#endif
+
+#if defined _WIN32 || defined __CYGWIN__
+    #ifdef BUILDING_LIB
+        #define NESAPI __declspec(dllexport)
+    #else
+        #define NESAPI __declspec(dllimport)
+    #endif
+#else
+    #ifdef BUILDING_LIB
+        #define NESAPI __attribute__ ((visibility ("default")))
+    #else
+        #define NESAPI
+    #endif
+#endif
+
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -19,6 +41,20 @@ struct NES_Cpu;
 struct NES_Ppu;
 struct NES_Cart;
 struct NES_Core;
+struct NES_ApuCallbackData;
+
+
+typedef void(*nes_apu_callback_t)(void* user, struct NES_ApuCallbackData* data);
+typedef void(*nes_vblank_callback_t)(void* user);
+
+
+enum
+{
+    NES_ROM_SIZE_MAX = 1024 * 1024 * 4,
+
+    NES_SCREEN_WIDTH = 256,
+    NES_SCREEN_HEIGHT = 240,
+};
 
 
 /* APU START */
@@ -97,9 +133,10 @@ struct NES_FrameSequencer
 
 struct NES_ApuCallbackData
 {
-    // this number is arbitrary, though should be small enough that
-    // there's minimal latency!
-    int8_t samples[512];
+    int8_t square1;
+    int8_t square2;
+    int8_t triangle;
+    int8_t noise;
 };
 
 struct NES_Apu
@@ -115,21 +152,11 @@ struct NES_Apu
 
     struct NES_Status status;
     struct NES_FrameSequencer frame_sequencer;
-
-    int16_t sample_cycles;
-    uint16_t sample_index;
-    struct NES_ApuCallbackData sample_data;
 };
     /* APU END */
 
 
     /* PPU START */
-enum NesScreenSize
-{
-    NES_SCREEN_WIDTH = 256,
-    NES_SCREEN_HEIGHT = 240,
-};
-
 struct NES_Sprite
 {
     uint8_t y;
@@ -307,10 +334,11 @@ struct NES_CartHeader
 
 struct NES_Cart
 {
-    uint8_t* pgr_rom;
-    uint8_t* chr_rom;
-    uint8_t* base_rom; /* rom buffer passed into loadrom() */
+    const uint8_t* pgr_rom;
+    const uint8_t* chr_rom;
 
+    enum NesMapperType mapper_type;
+    
     union
     {
         struct NES_Mapper_000 _000;
@@ -327,8 +355,6 @@ struct NES_Cart
         struct NES_Mapper_099 _099;
         struct NES_Mapper_105 _105;
     } mapper;
-
-    enum NesMapperType mapper_type;
 
     uint32_t pgr_rom_size;
     uint32_t pgr_ram_size;
@@ -366,23 +392,6 @@ struct NES_Joypad
     uint8_t latch_b; // $4017
 };
 
-struct GB_MixerData
-{
-    int8_t square1;
-    int8_t square2;
-    int8_t triangle;
-    int8_t noise;
-};
-
-typedef void(*NES_apu_callback_t)(struct NES_Core* nes, void* user,
-    struct NES_ApuCallbackData* data
-);
-
-typedef int8_t(*NES_mixer_callback_t)(struct NES_Core* nes, void* user,
-    struct GB_MixerData data
-);
-
-
 struct NES_Core
 {
     struct NES_Cpu cpu;
@@ -392,9 +401,16 @@ struct NES_Core
     struct NES_Cart cart;
     uint8_t wram[1024 * 2];
 
-    void* user_data; // set for callbacks
-    NES_mixer_callback_t mixer_cb;
-    NES_apu_callback_t apu_cb;
+    const uint8_t* rom; /* rom buffer passed into loadrom() */
+    size_t rom_size;
+
+    nes_vblank_callback_t vblank_callback;
+    void* vblank_callback_user;
+
+    nes_apu_callback_t apu_callback;
+    void* apu_callback_user;
+    uint32_t apu_callback_freq;
+    int32_t apu_callback_counter;
 };
 
 #ifdef __cplusplus
