@@ -15,4 +15,8 @@
     #include "joypad.c"
     #include "nes.c"
     #include "ppu.c"
+    #include "mappers/mapper_000.c"
+    #include "mappers/mapper_001.c"
+    #include "mappers/mapper_002.c"
+    #include "mappers/mapper_003.c"
 #endif

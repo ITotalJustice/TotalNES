@@ -1,4 +1,5 @@
 #include <nes.h>
+#include <palette.h>
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -13,6 +14,13 @@
 static uint8_t ROM_BUFFER[0x400000] = {0}; // 4MiB
 static struct NES_Core nes = {0};
 static int scale = 2;
+static uint32_t core_pixels[NES_SCREEN_HEIGHT][NES_SCREEN_WIDTH];
+
+static SDL_Window* window = NULL;
+static SDL_Renderer* renderer = NULL;
+static SDL_Texture* texture = NULL;
+static SDL_PixelFormat* pixel_format = NULL;
+
 
 static bool read_file(const char* path, uint8_t* out_buf, size_t* out_size)
 {
@@ -47,6 +55,29 @@ fail:
     return false;
 }
 
+static void core_on_vblank(void* user)
+{
+    void* pixels; int pitch;
+
+    SDL_LockTexture(texture, NULL, &pixels, &pitch);
+    memcpy(pixels, nes.ppu.pixels, sizeof(nes.ppu.pixels));
+    SDL_UnlockTexture(texture);
+}
+
+static void setup_palette()
+{
+    struct NES_Palette palette = {0};
+
+    for (size_t i = 0; i < 64; ++i)
+    {
+        const struct RgbTriple rgb = NES_RGB888_PALETTE[i];
+
+        palette.colour[i] = SDL_MapRGB(pixel_format, rgb.r, rgb.g, rgb.b);
+    }
+
+    NES_set_palette(&nes, &palette);
+}
+
 int main(int argc, char** argv)
 {
     if (argc < 2)
@@ -68,23 +99,38 @@ int main(int argc, char** argv)
         exit(-1);
     }
 
-    SDL_Init(SDL_INIT_VIDEO);
+    window = SDL_CreateWindow("TotalNES", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WIDTH * scale, HEIGHT * scale, SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE);
 
-    SDL_Window* window = SDL_CreateWindow(
-        "TotalNES",
-        SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-        NES_SCREEN_WIDTH * scale, NES_SCREEN_HEIGHT * scale,
-        0
-    );
+    if (!window)
+    {
+        exit(-1);
+    }
 
-    SDL_Renderer* renderer = SDL_CreateRenderer(
-        window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC
-    );
+    // this doesn't seem to work on chromebook...
+    SDL_SetWindowMinimumSize(window, WIDTH, HEIGHT);
 
-    SDL_Texture* texture = SDL_CreateTexture(
-        renderer, SDL_PIXELFORMAT_RGB888, SDL_TEXTUREACCESS_STREAMING,
-        NES_SCREEN_WIDTH, NES_SCREEN_HEIGHT
-    );
+    const uint32_t pixel_format_enum = SDL_GetWindowPixelFormat(window);
+
+    pixel_format = SDL_AllocFormat(pixel_format_enum);
+
+    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+
+    if (!renderer)
+    {
+        exit(-1);
+    }
+
+    texture = SDL_CreateTexture(renderer, pixel_format_enum, SDL_TEXTUREACCESS_STREAMING, WIDTH, HEIGHT);
+
+    if (!texture)
+    {
+        exit(-1);
+    }
+
+    NES_set_pixels(&nes, core_pixels, NES_SCREEN_WIDTH, 32);
+    NES_set_vblank_callback(&nes, core_on_vblank, NULL);
+
+    setup_palette();
 
     bool quit = false;
 
@@ -116,12 +162,6 @@ int main(int argc, char** argv)
         }
 
         NES_run_frame(&nes);
-
-        void* pixels; int pitch;
-
-        SDL_LockTexture(texture, NULL, &pixels, &pitch);
-        memcpy(pixels, nes.ppu.pixels, sizeof(nes.ppu.pixels));
-        SDL_UnlockTexture(texture);
 
         SDL_RenderClear(renderer);
         SDL_RenderCopy(renderer, texture, NULL, NULL);

@@ -1,6 +1,7 @@
 // this is a small-ish example of how you would use my NES_core
 // and how to write a basic "frontend".
 #include <nes.h>
+#include <palette.h>
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -13,7 +14,7 @@ enum
     HEIGHT = NES_SCREEN_HEIGHT,
 
     VOLUME = SDL_MIX_MAXVOLUME / 2,
-    SAMPLES = 1024,
+    SAMPLES = 2048,
     SDL_AUDIO_FREQ = 96000,
 };
 
@@ -26,6 +27,7 @@ static const char* rom_path = NULL;
 static uint8_t rom_data[NES_ROM_SIZE_MAX] = {0};
 static size_t rom_size = 0;
 static bool has_rom = false;
+static uint32_t core_pixels[NES_SCREEN_HEIGHT][NES_SCREEN_WIDTH];
 
 static bool running = true;
 static int scale = 2;
@@ -363,7 +365,7 @@ static void core_on_apu(void* user, struct NES_ApuCallbackData* data)
 
         while (SDL_GetQueuedAudioSize(audio_device) > (sizeof(buffer) * 4))
         {
-            SDL_Delay(4);
+            SDL_Delay(8);
         }
 
         SDL_QueueAudio(audio_device, samples, sizeof(samples));
@@ -381,7 +383,7 @@ static void core_on_vblank(void* user)
         void* pixels; int pitch;
 
         SDL_LockTexture(texture, NULL, &pixels, &pitch);
-        memcpy(pixels, nes.ppu.pixels, sizeof(nes.ppu.pixels));
+        memcpy(pixels, core_pixels, sizeof(core_pixels));
         SDL_UnlockTexture(texture);
 
         frameskip_counter = 0;
@@ -392,7 +394,6 @@ static void render()
 {
     SDL_RenderClear(renderer);
     SDL_RenderCopy(renderer, texture, NULL, &rect);
-
     SDL_RenderPresent(renderer);
 }
 
@@ -405,6 +406,20 @@ static void cleanup()
     if (window)         { SDL_DestroyWindow(window); }
 
     SDL_Quit();
+}
+
+static void setup_palette()
+{
+    struct NES_Palette palette = {0};
+
+    for (size_t i = 0; i < 64; ++i)
+    {
+        const struct RgbTriple rgb = NES_RGB888_PALETTE[i];
+
+        palette.colour[i] = SDL_MapRGB(pixel_format, rgb.r, rgb.g, rgb.b);
+    }
+
+    NES_set_palette(&nes, &palette);
 }
 
 int main(int argc, char** argv)
@@ -476,7 +491,7 @@ int main(int argc, char** argv)
         goto fail;
     }
 
-    texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB888 /*pixel_format_enum*/, SDL_TEXTUREACCESS_STREAMING, WIDTH, HEIGHT);
+    texture = SDL_CreateTexture(renderer, pixel_format_enum, SDL_TEXTUREACCESS_STREAMING, WIDTH, HEIGHT);
 
     if (!texture)
     {
@@ -519,6 +534,9 @@ int main(int argc, char** argv)
 
     SDL_PauseAudioDevice(audio_device, 0);
 
+    setup_palette();
+
+    NES_set_pixels(&nes, core_pixels, NES_SCREEN_WIDTH, 32);
     NES_set_apu_callback(&nes, core_on_apu, NULL, aspec_got.freq + 512);
     NES_set_vblank_callback(&nes, core_on_vblank, NULL);
 

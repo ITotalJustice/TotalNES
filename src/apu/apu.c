@@ -38,7 +38,7 @@ const int8_t TRIANGLE_DUTY_TABLE[0x20] =
     +0, -1, -2, -3, -4, -5, -6, -7
 };
 
-static void on_clock_irq(struct NES_Core* nes)
+static FORCE_INLINE void on_clock_irq(struct NES_Core* nes)
 {
     // todo: fire actual IRQ
     if (FRAME_SEQUENCER.irq_enable)
@@ -47,7 +47,7 @@ static void on_clock_irq(struct NES_Core* nes)
     }
 }
 
-static void on_clock_length_and_sweep(struct NES_Core* nes)
+static FORCE_INLINE void on_clock_length_and_sweep(struct NES_Core* nes)
 {
     clock_square1_length(nes);
     clock_square2_length(nes);
@@ -58,7 +58,7 @@ static void on_clock_length_and_sweep(struct NES_Core* nes)
     clock_square2_sweep(nes);
 }
 
-static void on_clock_envelope_and_linear_counter(struct NES_Core* nes)
+static FORCE_INLINE void on_clock_envelope_and_linear_counter(struct NES_Core* nes)
 {
     clock_square1_envelope(nes);
     clock_square2_envelope(nes);
@@ -67,7 +67,7 @@ static void on_clock_envelope_and_linear_counter(struct NES_Core* nes)
     clock_triangle_linear(nes);
 }
 
-static void frame_sequencer_clock(struct NES_Core* nes)
+static FORCE_INLINE void frame_sequencer_clock(struct NES_Core* nes)
 {
     // 2-modes, 4-step vs 5-step
     enum { MODE_4 = 0, MODE_5 = 1 };
@@ -129,7 +129,7 @@ static void frame_sequencer_clock(struct NES_Core* nes)
     }
 }
 
-static void sample(struct NES_Core* nes)
+static FORCE_INLINE void sample(struct NES_Core* nes)
 {
     struct NES_ApuCallbackData data =
     {

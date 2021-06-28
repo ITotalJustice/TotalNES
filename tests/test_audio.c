@@ -43,6 +43,8 @@ static bool read_file(const char* path, uint8_t* out_buf, size_t* out_size)
 
 static void core_on_apu(void* user, struct NES_ApuCallbackData* data)
 {
+    (void)user;
+    
     // using buffers because pushing 1 sample at a time seems to
     // cause popping sounds (on my chromebook).
     static int8_t buffer[SAMPLES] = {0};

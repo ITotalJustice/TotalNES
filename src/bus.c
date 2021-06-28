@@ -1,7 +1,6 @@
 #include "nes.h"
 #include "internal.h"
 
-#include <stdio.h>
 #include <assert.h>
 
 
@@ -9,8 +8,6 @@
 
 static inline uint8_t nes_cpu_io_read(struct NES_Core* nes, uint16_t addr)
 {
-    uint8_t data;
-
     switch (addr & 0x1F)
     {
         case 0x00: case 0x01: case 0x02: case 0x03:
@@ -22,23 +19,18 @@ static inline uint8_t nes_cpu_io_read(struct NES_Core* nes, uint16_t addr)
             return nes_apu_io_read(nes, addr);
 
         case 0x14:
-            data = nes->ppu.oam_addr;
-            break;
+            return nes->ppu.oam_addr;
 
         case 0x16: /* controller 1 */
-            data = nes_joypad_read_port_0(nes);
-            break;
+            return nes_joypad_read_port_0(nes);
 
         case 0x17: /* controller 2 */
-            data = 0x00;
-            break;
+            return 0x00;
 
         default:
             NES_log_fatal("invalid IO read\n");
             UNREACHABLE(0xFF);
     }
-
-    return data;
 }
 
 static inline void nes_cpu_io_write(struct NES_Core* nes, uint16_t addr, uint8_t value)
@@ -82,11 +74,6 @@ static inline uint8_t nes_ppu_register_read(struct NES_Core* nes, uint16_t addr)
             break;
 
         case 0x4:
-            if (!status_get_vblank(nes))
-            {
-                NES_log("WARN: reading from oam outside vblank!\n");
-            }
-
             data = nes->ppu.oam[nes->ppu.oam_addr];
             break;
 
@@ -133,11 +120,6 @@ static inline void nes_ppu_register_write(struct NES_Core* nes, uint16_t addr, u
             break;
 
         case 0x4:
-            if (!status_get_vblank(nes))
-            {
-                NES_log("WARN: writing to oam outside vblank!\n");
-            }
-
             // the addr is incremented after each write
             nes->ppu.oam[nes->ppu.oam_addr] = value;
             nes->ppu.oam_addr = (nes->ppu.oam_addr + 1) & 0xFF;
@@ -219,12 +201,12 @@ uint8_t nes_cpu_read(struct NES_Core* nes, uint16_t addr)
                 return 0xFF; // cart expansion
             }
 
-            case 0x3:
-            case 0x4:
-            case 0x5:
-            case 0x6:
-            case 0x7:
-                return nes_cart_read(nes, addr);
+        case 0x3:
+        case 0x4:
+        case 0x5:
+        case 0x6:
+        case 0x7:
+            return nes_cart_read(nes, addr);
     }
 
     UNREACHABLE(0xFF);
@@ -269,6 +251,6 @@ uint16_t nes_cpu_read16(struct NES_Core* nes, uint16_t addr)
 
 void nes_cpu_write16(struct NES_Core* nes, uint16_t addr, uint16_t value)
 {
-    nes_cpu_write(nes, addr, value & 0xFF);
+    nes_cpu_write(nes, addr + 0, (value >> 0) & 0xFF);
     nes_cpu_write(nes, addr + 1, (value >> 8) & 0xFF);
 }

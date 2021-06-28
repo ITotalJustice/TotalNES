@@ -374,7 +374,7 @@ void nes_cpu_nmi(struct NES_Core* nes)
     // save the current status
     PUSH8(GET_REG_P());
     // read from nmi vector
-    REG_PC = read16(NES_VECTOR_NMI);
+    REG_PC = read16(VECTOR_NMI);
 }
 
 void nes_cpu_run(struct NES_Core* nes)

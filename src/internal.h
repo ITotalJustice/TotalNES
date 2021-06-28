@@ -12,8 +12,9 @@ extern "C" {
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
 #define MAX(x, y) (((x) > (y)) ? (x) : (y))
 
+// in debug builds, we don't want to force inline anything
 #if NES_DEBUG
-    #define FORCE_INLINE inline
+    #define FORCE_INLINE
 #else
     #if defined(_MSC_VER)
         #define FORCE_INLINE inline __forceinline
@@ -94,21 +95,28 @@ enum
 };
 
 
-enum NesInterruptVector
+enum InterruptVector
 {
-    NES_VECTOR_NMI    = 0xFFFA,
-    NES_VECTOR_RESET  = 0xFFFC,
-    NES_VECTOR_IRQ    = 0xFFFE,
-    NES_VECTOR_BRK    = 0xFFFE,
+    VECTOR_NMI    = 0xFFFA,
+    VECTOR_RESET  = 0xFFFC,
+    VECTOR_IRQ    = 0xFFFE,
+    VECTOR_BRK    = 0xFFFE,
 };
 
+enum Mirror
+{
+    HORIZONTAL,
+    VERTICAL,
+    FOUR_SCREEN,
+};
 
 struct NES_Core; // fwd
 
 
 NES_STATIC void nes_apu_init(struct NES_Core* nes);
-NES_STATIC bool nes_has_mapper(const uint8_t mapper);
-NES_STATIC bool nes_mapper_setup(struct NES_Core* nes, uint8_t mapper);
+NES_STATIC void nes_ppu_init(struct NES_Core* nes);
+
+NES_STATIC bool nes_mapper_setup(struct NES_Core* nes, uint8_t mapper, enum Mirror mirror);
 
 NES_FORCE_INLINE void nes_cpu_run(struct NES_Core* nes);
 NES_FORCE_INLINE void nes_ppu_run(struct NES_Core* nes, const uint16_t cycles_elapsed);
@@ -123,8 +131,8 @@ NES_FORCE_INLINE uint16_t nes_cpu_read16(struct NES_Core* nes, uint16_t addr);
 NES_FORCE_INLINE void nes_cpu_write16(struct NES_Core* nes, uint16_t addr, uint16_t value);
 
 NES_STATIC void nes_dma(struct NES_Core* nes);
-NES_INLINE uint8_t nes_ppu_read(struct NES_Core* nes, uint16_t addr);
-NES_INLINE void nes_ppu_write(struct NES_Core* nes, uint16_t addr, uint8_t value);
+NES_FORCE_INLINE uint8_t nes_ppu_read(struct NES_Core* nes, uint16_t addr);
+NES_FORCE_INLINE void nes_ppu_write(struct NES_Core* nes, uint16_t addr, uint8_t value);
 
 NES_STATIC void nes_cpu_nmi(struct NES_Core* nes);
 
@@ -134,44 +142,13 @@ NES_STATIC void nes_joypad_write(struct NES_Core* nes, uint8_t value);
 NES_STATIC uint8_t nes_apu_io_read(struct NES_Core* nes, const uint16_t addr);
 NES_INLINE void nes_apu_io_write(struct NES_Core* nes, const uint16_t addr, const uint8_t value);
 
-
-// todo: idk why i wrote all these functions
-// ill probably remove most of them.
-NES_FORCE_INLINE void ctrl_set_nametable(struct NES_Core* nes, uint8_t v);
-NES_FORCE_INLINE void ctrl_set_vram_addr(struct NES_Core* nes, uint8_t v);
-NES_FORCE_INLINE void ctrl_set_obj_8x8_addr(struct NES_Core* nes, uint8_t v);
-NES_FORCE_INLINE void ctrl_set_bg_addr(struct NES_Core* nes, uint8_t v);
-NES_FORCE_INLINE void ctrl_set_obj_size(struct NES_Core* nes, uint8_t v);
-NES_FORCE_INLINE void ctrl_set_master(struct NES_Core* nes, uint8_t v);
 NES_FORCE_INLINE void ctrl_set_nmi(struct NES_Core* nes, uint8_t v);
-NES_FORCE_INLINE void mask_set_greyscale(struct NES_Core* nes, uint8_t v);
-NES_FORCE_INLINE void mask_set_bg_leftmost(struct NES_Core* nes, uint8_t v);
-NES_FORCE_INLINE void mask_set_obj_leftmost(struct NES_Core* nes, uint8_t v);
-NES_FORCE_INLINE void mask_set_bg_on(struct NES_Core* nes, uint8_t v);
-NES_FORCE_INLINE void mask_set_obj_on(struct NES_Core* nes, uint8_t v);
-NES_FORCE_INLINE void mask_set_bgr(struct NES_Core* nes, uint8_t v);
-NES_FORCE_INLINE void status_set_lsb(struct NES_Core* nes, uint8_t v);
 NES_FORCE_INLINE void status_set_obj_overflow(struct NES_Core* nes, uint8_t v);
 NES_FORCE_INLINE void status_set_obj_hit(struct NES_Core* nes, uint8_t v);
 NES_FORCE_INLINE void status_set_vblank(struct NES_Core* nes, uint8_t v);
 
-NES_STATIC uint8_t ctrl_get_nametable(const struct NES_Core* nes);
 NES_STATIC uint8_t ctrl_get_vram_addr(const struct NES_Core* nes);
-NES_STATIC uint8_t ctrl_get_obj_8x8_addr(const struct NES_Core* nes);
-NES_STATIC uint8_t ctrl_get_bg_addr(const struct NES_Core* nes);
-NES_STATIC uint8_t ctrl_get_obj_size(const struct NES_Core* nes);
-NES_STATIC uint8_t ctrl_get_master(const struct NES_Core* nes);
 NES_STATIC uint8_t ctrl_get_nmi(const struct NES_Core* nes);
-NES_STATIC uint8_t mask_get_greyscale(const struct NES_Core* nes);
-NES_STATIC uint8_t mask_get_bg_leftmost(const struct NES_Core* nes);
-NES_STATIC uint8_t mask_get_obj_leftmost(const struct NES_Core* nes);
-NES_STATIC uint8_t mask_get_bg_on(const struct NES_Core* nes);
-NES_STATIC uint8_t mask_get_obj_on(const struct NES_Core* nes);
-NES_STATIC uint8_t mask_get_bgr(const struct NES_Core* nes);
-NES_STATIC uint8_t status_get_lsb(const struct NES_Core* nes);
-NES_STATIC uint8_t status_get_obj_overflow(const struct NES_Core* nes);
-NES_STATIC uint8_t status_get_obj_hit(const struct NES_Core* nes);
-NES_STATIC uint8_t status_get_vblank(const struct NES_Core* nes);
 
 #ifdef __cplusplus
 }

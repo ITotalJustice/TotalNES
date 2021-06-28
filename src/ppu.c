@@ -1,141 +1,13 @@
 #include "nes.h"
 #include "internal.h"
 
-
 #include <stdio.h>
 #include <assert.h>
 
 
-struct RgbTriple
-{
-    uint8_t r, g, b;
-};
-
-// todo: generate this table again but use BGR555 instead
-static const struct RgbTriple NES_RGB888_PALETTE[64] =
-{
-    [0x00] = { .r = 0x54, .g = 0x54, .b = 0x54 },
-    [0x01] = { .r = 0x00, .g = 0x1E, .b = 0x74 },
-    [0x02] = { .r = 0x08, .g = 0x10, .b = 0x90 },
-    [0x03] = { .r = 0x30, .g = 0x00, .b = 0x88 },
-    [0x04] = { .r = 0x44, .g = 0x00, .b = 0x64 },
-    [0x05] = { .r = 0x5C, .g = 0x00, .b = 0x48 },
-    [0x06] = { .r = 0x54, .g = 0x04, .b = 0x00 },
-    [0x07] = { .r = 0x3C, .g = 0x18, .b = 0x00 },
-    [0x08] = { .r = 0x20, .g = 0x2A, .b = 0x00 },
-    [0x09] = { .r = 0x08, .g = 0x3A, .b = 0x00 },
-    [0x0A] = { .r = 0x00, .g = 0x40, .b = 0x00 },
-    [0x0B] = { .r = 0x00, .g = 0x3C, .b = 0x00 },
-    [0x0C] = { .r = 0x00, .g = 0x32, .b = 0x3C },
-    [0x0D] = { .r = 0x00, .g = 0x00, .b = 0x00 },
-    [0x0E] = { .r = 0x00, .g = 0x00, .b = 0x00 },
-    [0x0F] = { .r = 0x00, .g = 0x00, .b = 0x00 },
-
-    [0x10] = { .r = 152, .g = 150, .b = 152 },
-    [0x11] = { .r = 8, .g = 76, .b = 196 },
-    [0x12] = { .r = 48, .g = 50, .b = 236 },
-    [0x13] = { .r = 92, .g = 30, .b = 228 },
-    [0x14] = { .r = 136, .g = 20, .b = 176 },
-    [0x15] = { .r = 160, .g = 20, .b = 100 },
-    [0x16] = { .r = 152, .g = 34, .b = 32 },
-    [0x17] = { .r = 120, .g = 60, .b = 0 },
-    [0x18] = { .r = 84, .g = 90, .b = 0 },
-    [0x19] = { .r = 40, .g = 114, .b = 0 },
-    [0x1A] = { .r = 8, .g = 124, .b = 0 },
-    [0x1B] = { .r = 0, .g = 118, .b = 40 },
-    [0x1C] = { .r = 0, .g = 102, .b = 120 },
-    [0x1D] = { .r = 0x00, .g = 0x00, .b = 0x00 },
-    [0x1E] = { .r = 0x00, .g = 0x00, .b = 0x00 },
-    [0x1F] = { .r = 0x00, .g = 0x00, .b = 0x00 },
-
-    [0x20] = { .r = 236, .g = 238, .b = 236 },
-    [0x21] = { .r = 76, .g = 154, .b = 236 },
-    [0x22] = { .r = 120, .g = 124, .b = 236 },
-    [0x23] = { .r = 176, .g = 98, .b = 236 },
-    [0x24] = { .r = 228, .g = 84, .b = 236 },
-    [0x25] = { .r = 236, .g = 88, .b = 180 },
-    [0x26] = { .r = 236, .g = 106, .b = 100 },
-    [0x27] = { .r = 212, .g = 136, .b = 32 },
-    [0x28] = { .r = 160, .g = 170, .b = 0x00 },
-    [0x29] = { .r = 116, .g = 196, .b = 0x00 },
-    [0x2A] = { .r = 76, .g = 208, .b = 32 },
-    [0x2B] = { .r = 56, .g = 204, .b = 108 },
-    [0x2C] = { .r = 56, .g = 180, .b = 204 },
-    [0x2D] = { .r = 60, .g = 60, .b = 60 },
-    [0x2E] = { .r = 0x00, .g = 0x00, .b = 0x00 },
-    [0x2F] = { .r = 0x00, .g = 0x00, .b = 0x00 },
-
-    [0x30] = { .r = 236, .g = 238, .b = 236 },
-    [0x31] = { .r = 168, .g = 204, .b = 236 },
-    [0x32] = { .r = 188, .g = 188, .b = 236 },
-    [0x33] = { .r = 212, .g = 178, .b = 236 },
-    [0x34] = { .r = 236, .g = 174, .b = 236 },
-    [0x35] = { .r = 236, .g = 174, .b = 212 },
-    [0x36] = { .r = 236, .g = 180, .b = 176 },
-    [0x37] = { .r = 228, .g = 196, .b = 144 },
-    [0x38] = { .r = 204, .g = 210, .b = 120 },
-    [0x39] = { .r = 180, .g = 222, .b = 120 },
-    [0x3A] = { .r = 168, .g = 226, .b = 144 },
-    [0x3B] = { .r = 152, .g = 226, .b = 180 },
-    [0x3C] = { .r = 160, .g = 214, .b = 228 },
-    [0x3D] = { .r = 160, .g = 162, .b = 160 },
-    [0x3E] = { .r = 0x00, .g = 0x00, .b = 0x00 },
-    [0x3F] = { .r = 0x00, .g = 0x00, .b = 0x00 },
-};
-
-void ctrl_set_nametable(struct NES_Core* nes, uint8_t v)
-{
-    nes->ppu.ctrl = (nes->ppu.ctrl & ~(0x03 << 0)) | ((v & 0x03) << 0);
-}
-
-void ctrl_set_vram_addr(struct NES_Core* nes, uint8_t v)
-{
-    nes->ppu.ctrl = (nes->ppu.ctrl & ~(0x01 << 2)) | ((v & 0x01) << 2);
-}
-
 uint8_t ctrl_get_vram_addr(const struct NES_Core* nes)
 {
     return (nes->ppu.ctrl >> 2) & 0x01;
-}
-
-void ctrl_set_obj_8x8_addr(struct NES_Core* nes, uint8_t v)
-{
-    nes->ppu.ctrl = (nes->ppu.ctrl & ~(0x01 << 3)) | ((v & 0x01) << 3);
-}
-
-uint8_t ctrl_get_obj_8x8_addr(const struct NES_Core* nes)
-{
-    return (nes->ppu.ctrl >> 3) & 0x01;
-}
-
-void ctrl_set_bg_addr(struct NES_Core* nes, uint8_t v)
-{
-    nes->ppu.ctrl = (nes->ppu.ctrl & ~(0x01 << 4)) | ((v & 0x01) << 4);
-}
-
-uint8_t ctrl_get_bg_addr(const struct NES_Core* nes)
-{
-    return (nes->ppu.ctrl >> 4) & 0x01;
-}
-
-void ctrl_set_obj_size(struct NES_Core* nes, uint8_t v)
-{
-    nes->ppu.ctrl = (nes->ppu.ctrl & ~(0x01 << 5)) | ((v & 0x01) << 5);
-}
-
-uint8_t ctrl_get_obj_size(const struct NES_Core* nes)
-{
-    return (nes->ppu.ctrl >> 5) & 0x01;
-}
-
-void ctrl_set_master(struct NES_Core* nes, uint8_t v)
-{
-    nes->ppu.ctrl = (nes->ppu.ctrl & ~(0x01 << 6)) | ((v & 0x01) << 6);
-}
-
-uint8_t ctrl_get_master(const struct NES_Core* nes)
-{
-    return (nes->ppu.ctrl >> 6) & 0x01;
 }
 
 void ctrl_set_nmi(struct NES_Core* nes, uint8_t v)
@@ -148,29 +20,9 @@ uint8_t ctrl_get_nmi(const struct NES_Core* nes)
     return (nes->ppu.ctrl >> 7) & 0x01;
 }
 
-void mask_set_greyscale(struct NES_Core* nes, uint8_t v)
-{
-    nes->ppu.mask = (nes->ppu.mask & ~(0x01 << 0)) | ((v & 0x01) << 0);
-}
-
-uint8_t mask_get_greyscale(const struct NES_Core* nes)
-{
-    return (nes->ppu.mask >> 0) & 0x01;
-}
-
-void mask_set_bg_leftmost(struct NES_Core* nes, uint8_t v)
-{
-    nes->ppu.mask = (nes->ppu.mask & ~(0x01 << 1)) | ((v & 0x01) << 1);
-}
-
 uint8_t mask_get_bg_leftmost(const struct NES_Core* nes)
 {
     return (nes->ppu.mask >> 1) & 0x01;
-}
-
-void mask_set_obj_leftmost(struct NES_Core* nes, uint8_t v)
-{
-    nes->ppu.mask = (nes->ppu.mask & ~(0x01 << 2)) | ((v & 0x01) << 2);
 }
 
 uint8_t mask_get_obj_leftmost(const struct NES_Core* nes)
@@ -178,19 +30,9 @@ uint8_t mask_get_obj_leftmost(const struct NES_Core* nes)
     return (nes->ppu.mask >> 2) & 0x01;
 }
 
-void mask_set_bg_on(struct NES_Core* nes, uint8_t v)
-{
-    nes->ppu.mask = (nes->ppu.mask & ~(0x01 << 3)) | ((v & 0x01) << 3);
-}
-
 uint8_t mask_get_bg_on(const struct NES_Core* nes)
 {
     return (nes->ppu.mask >> 3) & 0x01;
-}
-
-void mask_set_obj_on(struct NES_Core* nes, uint8_t v)
-{
-    nes->ppu.mask = (nes->ppu.mask & ~(0x01 << 4)) | ((v & 0x01) << 4);
 }
 
 uint8_t mask_get_obj_on(const struct NES_Core* nes)
@@ -198,19 +40,9 @@ uint8_t mask_get_obj_on(const struct NES_Core* nes)
     return (nes->ppu.mask >> 4) & 0x01;
 }
 
-void mask_set_bgr(struct NES_Core* nes, uint8_t v)
-{
-    nes->ppu.mask = (nes->ppu.mask & ~(0x07 << 5)) | ((v & 0x07) << 5);
-}
-
 uint8_t mask_get_bgr(const struct NES_Core* nes)
 {
     return (nes->ppu.mask >> 5) & 0x07;
-}
-
-void status_set_lsb(struct NES_Core* nes, uint8_t v)
-{
-    nes->ppu.status = (nes->ppu.status & ~(0x1F << 0)) | ((v & 0x1F) << 0);
 }
 
 uint8_t status_get_lsb(const struct NES_Core* nes)
@@ -223,29 +55,14 @@ void status_set_obj_overflow(struct NES_Core* nes, uint8_t v)
     nes->ppu.status = (nes->ppu.status & ~(0x01 << 5)) | ((v & 0x01) << 5);
 }
 
-uint8_t status_get_obj_overflow(const struct NES_Core* nes)
-{
-    return (nes->ppu.status >> 5) & 0x01;
-}
-
 void status_set_obj_hit(struct NES_Core* nes, uint8_t v)
 {
     nes->ppu.status = (nes->ppu.status & ~(0x01 << 6)) | ((v & 0x01) << 6);
 }
 
-uint8_t status_get_obj_hit(const struct NES_Core* nes)
-{
-    return (nes->ppu.status >> 6) & 0x01;
-}
-
 void status_set_vblank(struct NES_Core* nes, uint8_t v)
 {
     nes->ppu.status = (nes->ppu.status & ~(0x01 << 7)) | ((v & 0x01) << 7);
-}
-
-uint8_t status_get_vblank(const struct NES_Core* nes)
-{
-    return (nes->ppu.status >> 7) & 0x01;
 }
 
 static uint16_t ppu_get_nametable_addr(const struct NES_Core* nes)
@@ -271,6 +88,11 @@ static uint16_t ppu_get_obj_pattern_table_addr(const struct NES_Core* nes)
     return IS_BIT_SET(nes->ppu.ctrl, 3) * 0x1000;
 }
 
+static uint8_t ppu_get_sprite_size(const struct NES_Core* nes)
+{
+    return IS_BIT_SET(nes->ppu.ctrl, 5) ? 16 : 8;
+}
+
 // nametable is 0x3C0 bytes, then 0x40 bytes of attributes
 struct BgAttribute
 {
@@ -282,7 +104,7 @@ struct BgAttribute
 
 // as its 64 bytes next to each other for attr data,
 // could use simd to set all the data into the array
-static inline struct BgAttribute gen_bg_attr(const uint8_t v)
+static FORCE_INLINE struct BgAttribute gen_bg_attr(const uint8_t v)
 {
     return (struct BgAttribute)
     {
@@ -307,6 +129,9 @@ struct Obj
     uint8_t n;
     struct ObjAttribute a;
     uint8_t x;
+
+    uint16_t pattern_table_base;
+    bool sprite0;
 };
 
 struct Sprites
@@ -315,7 +140,7 @@ struct Sprites
     uint8_t count;
 };
 
-static inline struct ObjAttribute gen_ob_attr(const uint8_t v)
+static FORCE_INLINE struct ObjAttribute gen_ob_attr(const uint8_t v)
 {
     return (struct ObjAttribute)
     {
@@ -326,30 +151,50 @@ static inline struct ObjAttribute gen_ob_attr(const uint8_t v)
     };
 }
 
-static struct Sprites sprite_fetch(const struct NES_Core* nes)
+static struct Sprites sprite_fetch(struct NES_Core* nes)
 {
     struct Sprites sprites = {0};
     
-    const uint8_t sprite_size = 8;
+    // this is ignored if 8x16
+    const uint16_t pattern_table_addr = ppu_get_obj_pattern_table_addr(nes);
+    const uint8_t sprite_size = ppu_get_sprite_size(nes);
     const uint8_t ly = nes->ppu.scanline;
 
     for (size_t i = 0; i < ARRAY_SIZE(nes->ppu.oam); i += 4)
     {
-        struct Obj* sprite = &sprites.sprite[sprites.count];
-
-        sprite->y = nes->ppu.oam[i + 0];
-        sprite->n = nes->ppu.oam[i + 1];
-        sprite->a = gen_ob_attr(nes->ppu.oam[i + 2]);
-        sprite->x = nes->ppu.oam[i + 3];
+        const uint8_t sprite_y = nes->ppu.oam[i];
 
         // check if the y is in bounds!
-        if (ly >= sprite->y && ly < (sprite->y + sprite_size))
+        if (ly >= sprite_y && ly < (sprite_y + sprite_size))
         {
-            ++sprites.count;
-
             // only 8 sprites per line!
-            if (sprites.count == 8)
+            if (sprites.count < 8)
             {
+                struct Obj* sprite = &sprites.sprite[sprites.count];
+
+                sprite->y = sprite_y;
+                sprite->n = nes->ppu.oam[i + 1];
+                sprite->a = gen_ob_attr(nes->ppu.oam[i + 2]);
+                sprite->x = nes->ppu.oam[i + 3];
+                sprite->sprite0 = i == 0;
+
+                if (sprite_size == 8)
+                {
+                    sprite->pattern_table_base = pattern_table_addr;
+                }
+                else
+                {
+                    sprite->pattern_table_base = sprite->n & 0x1 ? 0x1000 : 0x0000;
+                    sprite->n &= ~0x1;
+                }
+                
+                ++sprites.count;
+            }
+            // we have to keep looping through oam in order to check
+            // if there were any lost sprites on this line!
+            else
+            {
+                status_set_obj_overflow(nes, true);
                 break;
             }
         }
@@ -357,19 +202,6 @@ static struct Sprites sprite_fetch(const struct NES_Core* nes)
 
     return sprites;
 }
-
-void ppu_reset(struct NES_Core* nes)
-{
-    (void)nes;
-}
-
-
-// SOURCE: https://problemkaputt.de/everynes.htm#ppureset
-// in order to support the locked registers, i can add a mask
-// table for every ppu reg, in which at statup, all writes
-// will be masked with 0, so the reg doesn't change.
-// then after the first frame, set the masks to 0xFF.
-
 
 // SOURCE: https://problemkaputt.de/everynes.htm#memorymaps
 /*
@@ -408,104 +240,40 @@ uint8_t nes_ppu_read(struct NES_Core* nes, uint16_t addr)
 {
     assert(addr <= 0x3FFF);
 
-    // if (addr <= 0x3EFF) {
-    //   return nes->ppu.map[addr >> 10][addr & 0x3FF];
-    // }
-    // else {
-    //   return nes->ppu.pram[addr & 0x1F];
-    // }
-
-    if (addr <= 0x0FFF)
-    { /* pattern table 0 */
-        return nes_cart_read(nes, addr);
+    if (LIKELY(addr <= 0x3EFF))
+    {
+        return nes->ppu.map[addr >> 10][addr & 0x3FF];
     }
+    else
+    {
+        addr &= 0x1F;
 
-    else if (addr >= 0x1000 && addr <= 0x1FFF)
-    { /* pattern table 1 */
-        return nes_cart_read(nes, addr);
-    }
+        if (addr == 0x10 || addr == 0x14 || addr == 0x18 || addr == 0x1C)
+        {
+            addr -= 0x10;
+        }
 
-    else if (addr >= 0x2000 && addr <= 0x23FF)
-    { /* nametable 0 */
-        return nes->ppu.vram[addr - 0x2000];
-    }
-
-    else if (addr >= 0x2400 && addr <= 0x27FF)
-    { /* nametable 1 */
-        return nes->ppu.vram[addr - 0x2000];
-    }
-
-    else if (addr >= 0x2800 && addr <= 0x2BFF)
-    { /* nametable 2 */
-        return nes->ppu.vram[addr - 0x2800];
-    }
-
-    else if (addr >= 0x2C00 && addr <= 0x2FFF)
-    { /* nametable 3 */
-        return nes->ppu.vram[addr - 0x2800];
-    }
-
-    else if (addr >= 0x3000 && addr <= 0x3EFF)
-    { /* mirrors of 0x2000-0x2EFF */
-        return nes_ppu_read(nes, addr - 0x1000);
-    }
-
-    else if (addr >= 0x3F00 && addr <= 0x3FFF)
-    { /* palette ram + mirrors. */
         return nes->ppu.pram[addr & 0x1F];
     }
-
-    UNREACHABLE(0xFF);
 }
 
 void nes_ppu_write(struct NES_Core* nes, uint16_t addr, uint8_t value)
 {
     assert(addr <= 0x3FFF);
 
-    // if (addr <= 0x3EFF) {
-    //   nes->ppu.map[addr >> 10][addr & 0x3FF] = value;
-    // }
-    // else {
-    //   nes->ppu.pram[addr & 0x1F] = value;
-    // }
-
-    if (addr <= 0x0FFF)
-    { /* pattern table 0 */
-        nes_cart_write(nes, addr, value);
+    if (LIKELY(addr <= 0x3EFF))
+    {
+        nes->ppu.map[addr >> 10][addr & 0x3FF] = value;
     }
+    else
+    {
+        addr &= 0x1F;
 
-    else if (addr >= 0x1000 && addr <= 0x1FFF)
-    { /* pattern table 1 */
-        nes_cart_write(nes, addr, value);
-    }
+        if (addr == 0x10 || addr == 0x14 || addr == 0x18 || addr == 0x1C)
+        {
+            addr -= 0x10;
+        }
 
-    else if (addr >= 0x2000 && addr <= 0x23FF)
-    { /* nametable 0 */
-        nes->ppu.vram[addr - 0x2000] = value;
-    }
-
-    else if (addr >= 0x2400 && addr <= 0x27FF)
-    { /* nametable 1 */
-        nes->ppu.vram[addr - 0x2000] = value;
-    }
-
-    else if (addr >= 0x2800 && addr <= 0x2BFF)
-    { /* nametable 2 */
-        nes->ppu.vram[addr - 0x2800] = value;
-    }
-
-    else if (addr >= 0x2C00 && addr <= 0x2FFF)
-    { /* nametable 3 */
-        nes->ppu.vram[addr - 0x2800] = value;
-    }
-
-    else if (addr >= 0x3000 && addr <= 0x3EFF)
-    { /* mirrors of 0x2000-0x2EFF */
-        nes_ppu_write(nes, addr - 0x1000, value);
-    }
-
-    else if (addr >= 0x3F00 && addr <= 0x3FFF)
-    { /* palette ram + mirrors. */
         nes->ppu.pram[addr & 0x1F] = value;
     }
 }
@@ -522,20 +290,42 @@ void nes_dma(struct NES_Core* nes)
     }
 }
 
-static void ppu_write_pixel(struct NES_Core* nes, uint32_t c, uint16_t x, uint16_t y)
+// this is kinda slow, but allows but any pixel format to be set.
+// this could be a compile-time option instead, with the default being u32
+static FORCE_INLINE void ppu_write_pixel(struct NES_Core* nes, uint32_t c, uint16_t x, uint16_t y)
 {
-    nes->ppu.pixels[y][x] = c;
+    switch (nes->bpp)
+    {
+        case 8:
+            ((uint8_t*)nes->pixels)[nes->pixels_stride * y + x] = c;
+            break;
+
+        case 15:
+        case 16:
+            ((uint16_t*)nes->pixels)[nes->pixels_stride * y + x] = c;
+            break;
+
+        case 24:
+        case 32:
+            ((uint32_t*)nes->pixels)[nes->pixels_stride * y + x] = c;
+            break;
+    }
 }
 
-static struct RgbTriple get_colour_from_palette_ram(struct NES_Core* nes, uint8_t palette, uint8_t colour_id)
+static FORCE_INLINE uint32_t get_colour_from_palette(struct NES_Core* nes, uint8_t palette, uint8_t colour_id)
 {
     const uint8_t offset = (palette * 4) + colour_id;
-    const uint8_t index = nes->ppu.pram[offset & 0x1F];
-
-    return NES_RGB888_PALETTE[index & 0x3F];
+    const uint8_t index = nes_ppu_read(nes, 0x3F00 | offset);//nes->ppu.pram[offset & 0x1F];
+    return nes->palette.colour[index & 0x3F];
 }
 
-static void render_scanline_bg(struct NES_Core* nes, uint8_t line)
+// same as i used in dmg / gbc / sms
+struct PriorityBuf
+{
+    uint8_t pal[NES_SCREEN_WIDTH];
+};
+
+static void render_scanline_bg(struct NES_Core* nes, uint8_t line, struct PriorityBuf* prio)
 {
     const uint8_t row = (line >> 3) & 31;
     const uint8_t fine_line = line & 7;
@@ -552,8 +342,8 @@ static void render_scanline_bg(struct NES_Core* nes, uint8_t line)
         const uint8_t attr_byte = nes_ppu_read(nes, attr_table_addr++);
         const struct BgAttribute attr = gen_bg_attr(attr_byte);
 
-        const uint8_t bit_plane0 = nes->cart.chr_rom[pattern_table_addr + fine_line + (tile_num * 16) + 0];
-        const uint8_t bit_plane1 = nes->cart.chr_rom[pattern_table_addr + fine_line + (tile_num * 16) + 8];
+        const uint8_t bit_plane0 = nes_ppu_read(nes, pattern_table_addr + fine_line + (tile_num * 16) + 0);
+        const uint8_t bit_plane1 = nes_ppu_read(nes, pattern_table_addr + fine_line + (tile_num * 16) + 8);
 
         for (uint8_t x = 0; x < 8; ++x)
         {
@@ -566,39 +356,53 @@ static void render_scanline_bg(struct NES_Core* nes, uint8_t line)
             palette_index |= IS_BIT_SET(bit_plane0, bit) << 0;
             palette_index |= IS_BIT_SET(bit_plane1, bit) << 1;
 
-            (void)attr;
-            const struct RgbTriple rgb_triple = get_colour_from_palette_ram(nes, 0, palette_index);
+            prio->pal[x_index] = palette_index;
 
-            uint32_t colour = (rgb_triple.r << 16) | (rgb_triple.g << 8) | (rgb_triple.b);
+            (void)attr;
+            const uint32_t colour = get_colour_from_palette(nes, 3, palette_index);
 
             ppu_write_pixel(nes, colour, x_index, line);
         }
     }
 }
 
-static void render_scanline_obj(struct NES_Core* nes, uint8_t line)
+static void render_scanline_obj(struct NES_Core* nes, uint8_t line, const struct PriorityBuf* prio)
 {
-    const uint16_t pattern_table_addr = ppu_get_obj_pattern_table_addr(nes);
     const struct Sprites sprites = sprite_fetch(nes);
-    // const uint8_t fine_line = line & 7;
+    const uint8_t sprite_size = ppu_get_sprite_size(nes);
+
+    bool already_rendered[NES_SCREEN_WIDTH] = {0};
 
     for (uint8_t i = 0; i < sprites.count; ++i)
     {
         const struct Obj* sprite = &sprites.sprite[i];
     
-        uint16_t pattern_index = pattern_table_addr + (sprite->n * 16);
-        //
+        uint16_t pattern_index = sprite->pattern_table_base + (sprite->n * 16);
+        
+        // check if the sprite is upside down
         if (sprite->a.yflip)
         {
-            pattern_index += 7 - (line - sprite->y);
+            pattern_index += 7 - ((line - sprite->y) & 0x7);
+        
+            // check if we are on the next row
+            if (sprite_size == 16 && (line - sprite->y) < 8)
+            {
+                pattern_index += 16;
+            }
         }
         else
         {
-            pattern_index += (line - sprite->y);
+            pattern_index += ((line - sprite->y) & 0x7);
+        
+            // check if we are on the next row
+            if (sprite_size == 16 && (line - sprite->y) >= 8)
+            {
+                pattern_index += 16;
+            }
         }
 
-        const uint8_t bit_plane0 = nes->cart.chr_rom[pattern_index + 0];
-        const uint8_t bit_plane1 = nes->cart.chr_rom[pattern_index + 8];
+        const uint8_t bit_plane0 = nes_ppu_read(nes, pattern_index + 0);
+        const uint8_t bit_plane1 = nes_ppu_read(nes, pattern_index + 8);
 
         for (uint8_t x = 0; x < 8; ++x)
         {
@@ -606,7 +410,7 @@ static void render_scanline_obj(struct NES_Core* nes, uint8_t line)
 
             const uint16_t x_index = sprite->x + x;
 
-            if (x_index > 255)
+            if (x_index > NES_SCREEN_WIDTH)
             {
                 break;
             }
@@ -622,9 +426,30 @@ static void render_scanline_obj(struct NES_Core* nes, uint8_t line)
                 continue;
             }
 
-            const struct RgbTriple rgb_triple = get_colour_from_palette_ram(nes, sprite->a.palette + 4, palette_index);
+            // set if oam[0] is being rendered over pal 1-3 bg.
+            // it does not care for bg priority!
+            if (sprite->sprite0 && prio->pal[x_index] != 0)
+            {
+                status_set_obj_hit(nes, true);
+            }
 
-            uint32_t colour = (rgb_triple.r << 16) | (rgb_triple.g << 8) | (rgb_triple.b);
+            // skip if sprite has already been rendered
+            if (already_rendered[x_index])
+            {
+                continue;
+            }
+
+            // keep track of the sprite already being rendered
+            // this is set regardless of bg priority!
+            already_rendered[x_index] = true;
+
+            // skip if sprite is behind bg AND bg is transparent
+            if (sprite->a.bg_prio && prio->pal[x_index] != 0)
+            {
+                continue;
+            }
+
+            const uint32_t colour = get_colour_from_palette(nes, 4 + sprite->a.palette, palette_index);
 
             ppu_write_pixel(nes, colour, x_index, line);
         }
@@ -638,9 +463,17 @@ static void render_scanline(struct NES_Core* nes, int line)
         return;
     }
 
-    // need to draw 256 pixels wide!
-    render_scanline_bg(nes, line);
-    render_scanline_obj(nes, line);
+    struct PriorityBuf prio = {0};
+
+    if (mask_get_bg_on(nes))
+    {
+        render_scanline_bg(nes, line, &prio);
+    }
+
+    if (mask_get_obj_on(nes))
+    {
+        render_scanline_obj(nes, line, &prio);
+    }
 }
 
 // there are 262 scanlines total
@@ -648,27 +481,23 @@ static void render_scanline(struct NES_Core* nes, int line)
 // a pixel is created every clock cycle (ppu cycle?)
 void nes_ppu_run(struct NES_Core* nes, const uint16_t cycles_elapsed)
 {
-    (void)cycles_elapsed;
+    nes->ppu.cycles += cycles_elapsed * 3;
 
-    ++nes->ppu.cycles;
-
-    if (nes->ppu.cycles >= 341)
+    if (UNLIKELY(nes->ppu.cycles >= 341))
     {
-        if (nes->vblank_callback)
+        if (nes->pixels)
         {
             render_scanline(nes, nes->ppu.scanline);
         }
  
-        nes->ppu.cycles = 0;
-        ++nes->ppu.scanline;
-
-        // todo: remove sprite hit stub (used for super mario)
-        status_set_obj_hit(nes, 0);
-
+        // hack to get games working
         if (nes->ppu.scanline == 80)
         {
             status_set_obj_hit(nes, 1);
         }
+
+        nes->ppu.cycles -= 341;
+        ++nes->ppu.scanline;
 
         // vblank
         if (nes->ppu.scanline == 240)
@@ -691,9 +520,16 @@ void nes_ppu_run(struct NES_Core* nes, const uint16_t cycles_elapsed)
         // reset
         else if (nes->ppu.scanline == 261)
         {
-            // we are no longer in vblank, always clear the flag
+            // reset status
             status_set_vblank(nes, false);
+            status_set_obj_overflow(nes, false);
+            status_set_obj_hit(nes, false);
             nes->ppu.scanline = -1;
         }
     }
+}
+
+void nes_ppu_init(struct NES_Core* nes)
+{
+    (void)nes;
 }

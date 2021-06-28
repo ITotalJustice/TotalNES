@@ -30,8 +30,6 @@ extern "C" {
 #include <stdbool.h>
 #include <stddef.h>
 
-#include "mappers.h"
-
 
 // fwd;
 struct NES_INES;
@@ -50,6 +48,9 @@ typedef void(*nes_vblank_callback_t)(void* user);
 
 enum
 {
+    // 4MiB but most roms are a lot less.
+    // much like my gb emu, should have a rom info func which tells
+    // the user how much rom / ram space is needed.
     NES_ROM_SIZE_MAX = 1024 * 1024 * 4,
 
     NES_SCREEN_WIDTH = 256,
@@ -157,20 +158,6 @@ struct NES_Apu
 
 
     /* PPU START */
-struct NES_Sprite
-{
-    uint8_t y;
-    uint8_t x;
-
-    uint8_t bank;
-    uint8_t top;
-
-    uint8_t palette;
-    bool priority;
-    bool flipx;
-    bool flipy;
-};
-
 struct NES_Ppu
 {
     uint8_t* map[0x10];
@@ -210,11 +197,6 @@ struct NES_Ppu
     uint8_t pram[32]; /* palette ram */
     uint8_t oam[256]; /* object attribute memory */
     uint8_t vram[1024 * 2]; /* video ram */
-
-    /* framebuffer */
-    // TODO: have this be a pointer and let the user
-    // set it to whatever
-    uint32_t pixels[NES_SCREEN_HEIGHT][NES_SCREEN_WIDTH];
 };
     /* PPU END */
 
@@ -225,7 +207,72 @@ struct NES_Ppu
     // this will fixed at some point still.
 enum NesMapperType
 {
-    NES_MAPPER_000,
+    NesMapperType_000, // https://wiki.nesdev.com/w/index.php/INES_Mapper_000
+    NesMapperType_001, // https://wiki.nesdev.com/w/index.php/INES_Mapper_001
+    NesMapperType_002, // https://wiki.nesdev.com/w/index.php/INES_Mapper_002
+    NesMapperType_003, // https://wiki.nesdev.com/w/index.php/INES_Mapper_003
+    NesMapperType_004, // https://wiki.nesdev.com/w/index.php/INES_Mapper_004
+};
+
+// https://wiki.nesdev.com/w/index.php/INES_Mapper_000
+struct NES_Mapper_000
+{
+    const uint8_t* prg_rom_slots[2];
+    uint8_t* prg_ram_slots[2];
+    uint8_t* chr_ram_slots[2];
+    uint8_t prg_ram[1024 * 4];  // 4k
+    uint8_t chr_ram[1024 * 8];  // 8k
+};
+
+// https://wiki.nesdev.com/w/index.php/INES_Mapper_001
+struct NES_Mapper_001
+{
+    const uint8_t* prg_rom_slots[2];
+    uint8_t* prg_ram_slots[2];
+    uint8_t* chr_ram_slots[2];
+
+    uint8_t prg_ram[1024 * 8]; // 8k
+    uint8_t chr_ram[1024 * 128];  // 128k
+
+    uint8_t shift_reg; // 5-bit
+    uint8_t shift_reg_count; // counts to 5
+
+    // control
+    uint8_t mirroring;
+    uint8_t prg_rom_bank_mode;
+    uint8_t chr_rom_bank_mode;
+
+    uint8_t chr_bank0;
+    uint8_t chr_bank1;
+
+    uint8_t prg_bank;
+    bool prg_ram_enable;
+};
+
+// https://wiki.nesdev.com/w/index.php/INES_Mapper_002
+struct NES_Mapper_002
+{
+    const uint8_t* prg_rom_slots[2];
+    uint8_t* chr_ram_slots[2];
+    uint8_t chr_ram[1024 * 8];  // 8k
+    // uses bits 0-2 to select bank for 0x8000-0xFFFF
+    uint8_t bank_select;
+};
+
+// https://wiki.nesdev.com/w/index.php/INES_Mapper_003
+struct NES_Mapper_003
+{
+    const uint8_t* prg_rom_slots[2];
+    uint8_t chr_rom[1024 * 32];  // 8k
+    // uses bits 0-2 to select bank for 0x8000-0xFFFF
+    uint8_t bank_select;
+};
+
+// https://wiki.nesdev.com/w/index.php/INES_Mapper_004
+struct NES_Mapper_004
+{
+    uint8_t prg_ram[1024 * 8];  // 8k
+    uint8_t chr_ram[1024 * 8];  // 8k
 };
 
 struct NES_INES
@@ -346,14 +393,6 @@ struct NES_Cart
         struct NES_Mapper_002 _002;
         struct NES_Mapper_003 _003;
         struct NES_Mapper_004 _004;
-        struct NES_Mapper_005 _005;
-        struct NES_Mapper_009 _009;
-        struct NES_Mapper_010 _010;
-        struct NES_Mapper_037 _037;
-        struct NES_Mapper_047 _047;
-        struct NES_Mapper_066 _066;
-        struct NES_Mapper_099 _099;
-        struct NES_Mapper_105 _105;
     } mapper;
 
     uint32_t pgr_rom_size;
@@ -392,6 +431,11 @@ struct NES_Joypad
     uint8_t latch_b; // $4017
 };
 
+struct NES_Palette
+{
+    uint32_t colour[64];
+};
+
 struct NES_Core
 {
     struct NES_Cpu cpu;
@@ -399,16 +443,22 @@ struct NES_Core
     struct NES_Ppu ppu;
     struct NES_Joypad jp;
     struct NES_Cart cart;
+    struct NES_Palette palette;
     uint8_t wram[1024 * 2];
 
     const uint8_t* rom; /* rom buffer passed into loadrom() */
     size_t rom_size;
 
+    void* pixels;
+    uint32_t pixels_stride;
+    uint8_t bpp;
+    
     nes_vblank_callback_t vblank_callback;
     void* vblank_callback_user;
 
     nes_apu_callback_t apu_callback;
     void* apu_callback_user;
+
     uint32_t apu_callback_freq;
     int32_t apu_callback_counter;
 };

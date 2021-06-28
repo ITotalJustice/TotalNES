@@ -12,6 +12,7 @@ else()
        nes.c
        ppu.c
        joypad.c
+
        apu/apu.c
        apu/apu_io.c
        apu/square1.c
@@ -19,6 +20,11 @@ else()
        apu/triangle.c
        apu/noise.c
        apu/dmc.c
+    
+       mappers/mapper_000.c
+       mappers/mapper_001.c
+       mappers/mapper_002.c
+       mappers/mapper_003.c
     )
 
     target_compile_definitions(TotalNES PRIVATE NES_SINGLE_FILE=0)
