@@ -5,6 +5,10 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
 #include <SDL.h>
 
 
@@ -27,6 +31,13 @@ static const char* rom_path = NULL;
 static uint8_t rom_data[NES_ROM_SIZE_MAX] = {0};
 static size_t rom_size = 0;
 static bool has_rom = false;
+
+static int sram_fd = -1;
+static uint8_t* sram_data = NULL;
+static size_t sram_size = 0;
+
+static uint8_t chr_ram[1024 * 256] = {0};
+
 static uint32_t core_pixels[NES_SCREEN_HEIGHT][NES_SCREEN_WIDTH];
 
 static bool running = true;
@@ -399,6 +410,8 @@ static void render()
 
 static void cleanup()
 {
+    if (sram_data)      { munmap(sram_data, sram_size); }
+    if (sram_fd != -1)  { close(sram_fd); }
     if (pixel_format)   { SDL_free(pixel_format); }
     if (audio_device)   { SDL_CloseAudioDevice(audio_device); }
     if (texture)        { SDL_DestroyTexture(texture); }
@@ -451,14 +464,6 @@ int main(int argc, char** argv)
     {
         goto fail;
     }
-
-    if (!NES_loadrom(&nes, rom_data, rom_size))
-    {
-        printf("failed to loadrom\n");
-        goto fail;
-    }
-
-    has_rom = true;
 
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_GAMECONTROLLER))
     {
@@ -536,9 +541,90 @@ int main(int argc, char** argv)
 
     setup_palette();
 
+    NES_set_chr_ram(&nes, chr_ram, sizeof(chr_ram));
     NES_set_pixels(&nes, core_pixels, NES_SCREEN_WIDTH, 32);
     NES_set_apu_callback(&nes, core_on_apu, NULL, aspec_got.freq + 512);
     NES_set_vblank_callback(&nes, core_on_vblank, NULL);
+
+    struct NES_RomInfo rom_info = {0};
+
+    if (!NES_get_rom_info(rom_data, rom_size, &rom_info))
+    {
+        goto fail;
+    }
+
+    if (rom_info.prg_ram_size > 0)
+    {
+        int flags = 0;
+
+        if (rom_info.prg_battery)
+        {
+            char sram_path[0x304] = {0};
+
+            const char* ext = strrchr(argv[1], '.');
+
+            if (!ext)
+            {
+                goto fail;
+            }
+
+            strncat(sram_path, argv[1], ext - argv[1]);
+            strcat(sram_path, ".sav");
+
+            flags = MAP_SHARED;
+
+            sram_fd = open(sram_path, O_RDWR | O_CREAT, 0644);
+
+            if (sram_fd == -1)
+            {
+                perror("failed to open sram");
+                goto fail;
+            }
+
+            struct stat s = {0};
+
+            if (fstat(sram_fd, &s) == -1)
+            {
+                perror("failed to stat sram");
+                goto fail;
+            }
+
+            if (s.st_size < rom_info.prg_ram_size)
+            {
+                char page[1024] = {0};
+                
+                for (size_t i = 0; i < rom_info.prg_ram_size; i += sizeof(page))
+                {
+                    int size = sizeof(page) > rom_info.prg_ram_size-i ? rom_info.prg_ram_size-i : sizeof(page);
+                    write(sram_fd, page, size);
+                }
+            }  
+        }
+        else
+        {
+            flags = MAP_PRIVATE | MAP_ANONYMOUS;
+        }
+
+        sram_data = (uint8_t*)mmap(NULL, rom_info.prg_ram_size, PROT_READ | PROT_WRITE, flags, sram_fd, 0);
+    
+        if (sram_data == MAP_FAILED)
+        {
+            perror("failed to mmap sram");
+            goto fail;
+        }
+
+        sram_size = rom_info.prg_ram_size;
+
+        NES_set_prg_ram(&nes, sram_data, rom_info.prg_ram_size);
+    }
+
+    if (!NES_loadrom(&nes, rom_data, rom_size))
+    {
+        printf("failed to loadrom\n");
+        goto fail;
+    }
+
+    has_rom = true;
 
     while (running)
     {

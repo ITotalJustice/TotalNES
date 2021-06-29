@@ -25,6 +25,7 @@ else()
        mappers/mapper_001.c
        mappers/mapper_002.c
        mappers/mapper_003.c
+       mappers/mapper_007.c
     )
 
     target_compile_definitions(TotalNES PRIVATE NES_SINGLE_FILE=0)

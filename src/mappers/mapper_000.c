@@ -1,5 +1,6 @@
 #include "../nes.h"
 #include "../internal.h"
+#include "mappers.h"
 
 #include <string.h>
 #include <assert.h>
@@ -8,6 +9,19 @@
 #define MAPPER nes->cart.mapper._000
 
 
+enum
+{
+    MAPPER_000_PRG_RAM_SIZE = 0,
+    MAPPER_000_CHR_RAM_SIZE = 1024 * 8,
+};
+
+
+void mapper_get_prg_chr_ram_size_000(size_t* prg_size, size_t* chr_size)
+{
+    *prg_size = MAPPER_000_PRG_RAM_SIZE;
+    *chr_size = MAPPER_000_CHR_RAM_SIZE;
+}
+
 bool mapper_init_000(struct NES_Core* nes, enum Mirror mirror)
 {
     memset(&MAPPER, 0, sizeof(MAPPER));
@@ -15,59 +29,13 @@ bool mapper_init_000(struct NES_Core* nes, enum Mirror mirror)
     nes->cart.mapper_type = NesMapperType_000;
 
     /* prg rom banks */
-    MAPPER.prg_rom_slots[0] = nes->cart.pgr_rom;
-    MAPPER.prg_rom_slots[1] = nes->cart.pgr_rom_size == 0x4000 ? nes->cart.pgr_rom : nes->cart.pgr_rom + 0x4000;
-    
-    /* chr rom banks */
-    if (nes->cart.chr_rom_size > sizeof(MAPPER.chr_ram))
-    {
-        NES_log_fatal("invalid chram size!\n");
-        return false;
-    }
-    
-    memcpy(MAPPER.chr_ram, nes->cart.chr_rom, nes->cart.chr_rom_size);
+    MAPPER.prg_rom_slots[0] = nes->cart.prg_rom;
+    MAPPER.prg_rom_slots[1] = nes->cart.prg_rom_size == 0x4000 ? nes->cart.prg_rom : nes->cart.prg_rom + 0x4000;
 
-    MAPPER.chr_ram_slots[0] = MAPPER.chr_ram + 0x0000;
-    MAPPER.chr_ram_slots[1] = MAPPER.chr_ram + 0x1000;
+    mapper_set_pattern_table_bank(nes, 0, 0x0000);
+    mapper_set_pattern_table_bank(nes, 1, 0x1000);
+    mapper_set_nametable_mirroring(nes, mirror);
 
-    nes->ppu.map[0x0] = MAPPER.chr_ram_slots[0] + 0x000;
-    nes->ppu.map[0x1] = MAPPER.chr_ram_slots[0] + 0x400;
-    nes->ppu.map[0x2] = MAPPER.chr_ram_slots[0] + 0x800;
-    nes->ppu.map[0x3] = MAPPER.chr_ram_slots[0] + 0xC00;
-
-    nes->ppu.map[0x4] = MAPPER.chr_ram_slots[1] + 0x000;
-    nes->ppu.map[0x5] = MAPPER.chr_ram_slots[1] + 0x400;
-    nes->ppu.map[0x6] = MAPPER.chr_ram_slots[1] + 0x800;
-    nes->ppu.map[0x7] = MAPPER.chr_ram_slots[1] + 0xC00;
-
-    switch (mirror)
-    {
-        case HORIZONTAL:
-            nes->ppu.map[0x8] = nes->ppu.vram + 0x000;
-            nes->ppu.map[0x9] = nes->ppu.vram + 0x000;
-            nes->ppu.map[0xC] = nes->ppu.vram + 0x000;
-            nes->ppu.map[0xD] = nes->ppu.vram + 0x000;
-
-            nes->ppu.map[0xA] = nes->ppu.vram + 0x400;
-            nes->ppu.map[0xB] = nes->ppu.vram + 0x400;
-            nes->ppu.map[0xE] = nes->ppu.vram + 0x400;
-            nes->ppu.map[0xF] = nes->ppu.vram + 0x400;
-            break;
-
-        case VERTICAL:
-            nes->ppu.map[0x8] = nes->ppu.vram + 0x000;
-            nes->ppu.map[0xA] = nes->ppu.vram + 0x000;
-            nes->ppu.map[0xC] = nes->ppu.vram + 0x000;
-            nes->ppu.map[0xE] = nes->ppu.vram + 0x000;
-
-            nes->ppu.map[0x9] = nes->ppu.vram + 0x400;
-            nes->ppu.map[0xB] = nes->ppu.vram + 0x400;
-            nes->ppu.map[0xD] = nes->ppu.vram + 0x400;
-            nes->ppu.map[0xF] = nes->ppu.vram + 0x400;
-            break;
-
-        case FOUR_SCREEN: return false; // unsupported
-    }
     return true;
 }
 

@@ -24,7 +24,10 @@ enum NES_Button
 NESAPI bool NES_init(struct NES_Core* nes);
 // void NES_reset(struct NES_Core* nes);
 
-// NESAPI bool NES_is_header_valid(const struct NES_CartHeader* header);
+NESAPI bool NES_get_rom_info(const uint8_t* rom, size_t size, struct NES_RomInfo* info);
+
+NESAPI void NES_set_prg_ram(struct NES_Core* nes, uint8_t* data, size_t size);
+NESAPI void NES_set_chr_ram(struct NES_Core* nes, uint8_t* data, size_t size);
 
 NESAPI void NES_set_pixels(struct NES_Core* nes, void* pixels, uint32_t stride, uint8_t bpp);
 NESAPI void NES_set_palette(struct NES_Core* nes, const struct NES_Palette* palette);

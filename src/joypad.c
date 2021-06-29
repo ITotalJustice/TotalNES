@@ -45,6 +45,29 @@ void NES_set_button(struct NES_Core* nes, enum NES_Button button, bool down)
     if (down)
     {
         JOYPAD.buttons_a |= button;
+
+        // two same-axis direction buttons could not be pressed at the same time.
+        // (as usual) this breaks zelda.
+        switch (button)
+        {
+            case NES_BUTTON_RIGHT:
+                JOYPAD.buttons_a &= ~NES_BUTTON_LEFT;
+                break;
+
+            case NES_BUTTON_LEFT:
+                JOYPAD.buttons_a &= ~NES_BUTTON_RIGHT;
+                break;
+
+            case NES_BUTTON_UP:
+                JOYPAD.buttons_a &= ~NES_BUTTON_DOWN;
+                break;
+
+            case NES_BUTTON_DOWN:
+                JOYPAD.buttons_a &= ~NES_BUTTON_UP;
+                break;
+
+            default: break; // silence warning
+        }
     }
     else
     {

@@ -10,11 +10,6 @@ uint8_t ctrl_get_vram_addr(const struct NES_Core* nes)
     return (nes->ppu.ctrl >> 2) & 0x01;
 }
 
-void ctrl_set_nmi(struct NES_Core* nes, uint8_t v)
-{
-    nes->ppu.ctrl = (nes->ppu.ctrl & ~(0x01 << 7)) | ((v & 0x01) << 7);
-}
-
 uint8_t ctrl_get_nmi(const struct NES_Core* nes)
 {
     return (nes->ppu.ctrl >> 7) & 0x01;
@@ -104,16 +99,16 @@ struct BgAttribute
 
 // as its 64 bytes next to each other for attr data,
 // could use simd to set all the data into the array
-static FORCE_INLINE struct BgAttribute gen_bg_attr(const uint8_t v)
-{
-    return (struct BgAttribute)
-    {
-        .upper_left   = (v >> 0) & 0x3,
-        .upper_right  = (v >> 2) & 0x3,
-        .lower_left   = (v >> 4) & 0x3,
-        .lower_right  = (v >> 6) & 0x3
-    };
-}
+// static FORCE_INLINE struct BgAttribute gen_bg_attr(const uint8_t v)
+// {
+//     return (struct BgAttribute)
+//     {
+//         .upper_left   = (v >> 0) & 0x3,
+//         .upper_right  = (v >> 2) & 0x3,
+//         .lower_left   = (v >> 4) & 0x3,
+//         .lower_right  = (v >> 6) & 0x3
+//     };
+// }
 
 struct ObjAttribute
 {
@@ -242,7 +237,7 @@ uint8_t nes_ppu_read(struct NES_Core* nes, uint16_t addr)
 
     if (LIKELY(addr <= 0x3EFF))
     {
-        return nes->ppu.map[addr >> 10][addr & 0x3FF];
+        return nes->ppu.read_map[addr >> 10][addr & 0x3FF];
     }
     else
     {
@@ -263,7 +258,10 @@ void nes_ppu_write(struct NES_Core* nes, uint16_t addr, uint8_t value)
 
     if (LIKELY(addr <= 0x3EFF))
     {
-        nes->ppu.map[addr >> 10][addr & 0x3FF] = value;
+        if (LIKELY(nes->ppu.write_map[addr >> 10] != NULL))
+        {
+            nes->ppu.write_map[addr >> 10][addr & 0x3FF] = value;
+        }
     }
     else
     {
@@ -330,26 +328,59 @@ static void render_scanline_bg(struct NES_Core* nes, uint8_t line, struct Priori
     const uint8_t row = (line >> 3) & 31;
     const uint8_t fine_line = line & 7;
 
+    uint8_t scrollx = (nes->ppu.horizontal_scroll_origin >> 3) & 31;
+    const uint8_t fine_scrollx = nes->ppu.horizontal_scroll_origin & 0x7;
+
+    // uint8_t scrolly = (nes->ppu.vertical_scroll_origin >> 3) & 31;
+    const uint8_t fine_scrolly = nes->ppu.vertical_scroll_origin & 0x7;
+
     const uint16_t pattern_table_addr = ppu_get_bg_pattern_table_addr(nes);
 
-    uint16_t nametable_addr = ppu_get_nametable_addr(nes) + (row * 32);
-    uint16_t attr_table_addr = ppu_get_nametable_addr(nes) + (row * 4) + 0x3C0;
+    uint16_t nametable_base_addr = ppu_get_nametable_addr(nes);
+    // uint16_t attr_table_addr = ppu_get_nametable_addr(nes) + (row * 4) + 0x3C0;
 
     // todo: attribute table
     for (uint8_t col = 0; col < 32; ++col)
     {
-        const uint8_t tile_num = nes_ppu_read(nes, nametable_addr++);
-        const uint8_t attr_byte = nes_ppu_read(nes, attr_table_addr++);
-        const struct BgAttribute attr = gen_bg_attr(attr_byte);
+        uint16_t horizontal_offset = 0;
+        uint16_t vertical_offset = 0;
 
-        const uint8_t bit_plane0 = nes_ppu_read(nes, pattern_table_addr + fine_line + (tile_num * 16) + 0);
-        const uint8_t bit_plane1 = nes_ppu_read(nes, pattern_table_addr + fine_line + (tile_num * 16) + 8);
+        horizontal_offset = scrollx;
+        vertical_offset = row * 32;
+
+        const uint16_t nametable_addr = nametable_base_addr + horizontal_offset + vertical_offset;
+
+        if (scrollx == 31)
+        {
+            scrollx = 0;
+            nametable_base_addr ^= 0x400;
+        }
+        else
+        {
+            scrollx++;
+        }
+
+        const uint8_t tile_num = nes_ppu_read(nes, nametable_addr);
+        // const uint8_t attr_byte = nes_ppu_read(nes, attr_table_addr++);
+        // const struct BgAttribute attr = gen_bg_attr(attr_byte);
+
+        uint16_t palette_index_offset = pattern_table_addr;
+
+        palette_index_offset += (fine_line + fine_scrolly) & 0x7;
+
+        const uint8_t bit_plane0 = nes_ppu_read(nes, palette_index_offset + (tile_num * 16) + 0);
+        const uint8_t bit_plane1 = nes_ppu_read(nes, palette_index_offset + (tile_num * 16) + 8);
 
         for (uint8_t x = 0; x < 8; ++x)
         {
             const uint8_t bit = 7 - x;
 
-            const uint16_t x_index = (col * 8) + x;
+            const int16_t x_index = (col * 8) + x - fine_scrollx;
+
+            if (x_index < 0 || x_index >= NES_SCREEN_WIDTH)
+            {
+                continue;
+            }
 
             uint8_t palette_index = 0;
 
@@ -358,8 +389,7 @@ static void render_scanline_bg(struct NES_Core* nes, uint8_t line, struct Priori
 
             prio->pal[x_index] = palette_index;
 
-            (void)attr;
-            const uint32_t colour = get_colour_from_palette(nes, 3, palette_index);
+            const uint32_t colour = get_colour_from_palette(nes, 0, palette_index);
 
             ppu_write_pixel(nes, colour, x_index, line);
         }
@@ -410,7 +440,7 @@ static void render_scanline_obj(struct NES_Core* nes, uint8_t line, const struct
 
             const uint16_t x_index = sprite->x + x;
 
-            if (x_index > NES_SCREEN_WIDTH)
+            if (x_index >= NES_SCREEN_WIDTH)
             {
                 break;
             }
@@ -491,7 +521,7 @@ void nes_ppu_run(struct NES_Core* nes, const uint16_t cycles_elapsed)
         }
  
         // hack to get games working
-        if (nes->ppu.scanline == 80)
+        if (nes->ppu.scanline == 30)
         {
             status_set_obj_hit(nes, 1);
         }

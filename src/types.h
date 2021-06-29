@@ -160,7 +160,10 @@ struct NES_Apu
     /* PPU START */
 struct NES_Ppu
 {
-    uint8_t* map[0x10];
+    // these are basically the same, but keep const'ness of pointers
+    // such as, chr_rom from the const 
+    const uint8_t* read_map[0x10];
+    uint8_t* write_map[0x10];
 
     uint8_t ctrl;
     uint8_t mask;
@@ -207,32 +210,24 @@ struct NES_Ppu
     // this will fixed at some point still.
 enum NesMapperType
 {
-    NesMapperType_000, // https://wiki.nesdev.com/w/index.php/INES_Mapper_000
-    NesMapperType_001, // https://wiki.nesdev.com/w/index.php/INES_Mapper_001
-    NesMapperType_002, // https://wiki.nesdev.com/w/index.php/INES_Mapper_002
-    NesMapperType_003, // https://wiki.nesdev.com/w/index.php/INES_Mapper_003
-    NesMapperType_004, // https://wiki.nesdev.com/w/index.php/INES_Mapper_004
+    NesMapperType_000 = 0, // https://wiki.nesdev.com/w/index.php/INES_Mapper_000
+    NesMapperType_001 = 1, // https://wiki.nesdev.com/w/index.php/INES_Mapper_001
+    NesMapperType_002 = 2, // https://wiki.nesdev.com/w/index.php/INES_Mapper_002
+    NesMapperType_003 = 3, // https://wiki.nesdev.com/w/index.php/INES_Mapper_003
+    NesMapperType_004 = 4, // https://wiki.nesdev.com/w/index.php/INES_Mapper_004
+    NesMapperType_007 = 7, // https://wiki.nesdev.com/w/index.php/INES_Mapper_007
 };
 
 // https://wiki.nesdev.com/w/index.php/INES_Mapper_000
 struct NES_Mapper_000
 {
     const uint8_t* prg_rom_slots[2];
-    uint8_t* prg_ram_slots[2];
-    uint8_t* chr_ram_slots[2];
-    uint8_t prg_ram[1024 * 4];  // 4k
-    uint8_t chr_ram[1024 * 8];  // 8k
 };
 
 // https://wiki.nesdev.com/w/index.php/INES_Mapper_001
 struct NES_Mapper_001
 {
     const uint8_t* prg_rom_slots[2];
-    uint8_t* prg_ram_slots[2];
-    uint8_t* chr_ram_slots[2];
-
-    uint8_t prg_ram[1024 * 8]; // 8k
-    uint8_t chr_ram[1024 * 128];  // 128k
 
     uint8_t shift_reg; // 5-bit
     uint8_t shift_reg_count; // counts to 5
@@ -253,8 +248,6 @@ struct NES_Mapper_001
 struct NES_Mapper_002
 {
     const uint8_t* prg_rom_slots[2];
-    uint8_t* chr_ram_slots[2];
-    uint8_t chr_ram[1024 * 8];  // 8k
     // uses bits 0-2 to select bank for 0x8000-0xFFFF
     uint8_t bank_select;
 };
@@ -263,7 +256,6 @@ struct NES_Mapper_002
 struct NES_Mapper_003
 {
     const uint8_t* prg_rom_slots[2];
-    uint8_t chr_rom[1024 * 32];  // 8k
     // uses bits 0-2 to select bank for 0x8000-0xFFFF
     uint8_t bank_select;
 };
@@ -271,15 +263,23 @@ struct NES_Mapper_003
 // https://wiki.nesdev.com/w/index.php/INES_Mapper_004
 struct NES_Mapper_004
 {
-    uint8_t prg_ram[1024 * 8];  // 8k
-    uint8_t chr_ram[1024 * 8];  // 8k
+    uint8_t _remove_me;
+};
+
+// https://wiki.nesdev.com/w/index.php/INES_Mapper_007
+struct NES_Mapper_007
+{
+    const uint8_t* prg_rom_slots[2];
+    // uses bits 0-2 to select bank for 0x8000-0xFFFF
+    uint8_t bank_select;
+    uint8_t vram_page;
 };
 
 struct NES_INES
 {
     struct
     {
-        uint8_t pgr_ram_size;
+        uint8_t prg_ram_size;
     } flag8;
 
     struct
@@ -301,14 +301,14 @@ struct NES_INES2
 
     struct
     {
-        uint8_t pgr_rom : 4;
+        uint8_t prg_rom : 4;
         uint8_t chr_rom : 4;
     } flag9;
 
     struct
     {
-        uint8_t pgr_ram : 4;
-        uint8_t pgr_nvram : 4;
+        uint8_t prg_ram : 4;
+        uint8_t prg_nvram : 4;
     } flag10;
 
     struct
@@ -353,7 +353,7 @@ struct NES_INES2
 struct NES_CartHeader
 {
     uint8_t header_id[0x4];
-    uint8_t pgr_rom_size; /* 16k */
+    uint8_t prg_rom_size; /* 16k */
     uint8_t chr_rom_size; /* 8k */
 
     struct
@@ -381,7 +381,7 @@ struct NES_CartHeader
 
 struct NES_Cart
 {
-    const uint8_t* pgr_rom;
+    const uint8_t* prg_rom;
     const uint8_t* chr_rom;
 
     enum NesMapperType mapper_type;
@@ -393,10 +393,11 @@ struct NES_Cart
         struct NES_Mapper_002 _002;
         struct NES_Mapper_003 _003;
         struct NES_Mapper_004 _004;
+        struct NES_Mapper_007 _007;
     } mapper;
 
-    uint32_t pgr_rom_size;
-    uint32_t pgr_ram_size;
+    uint32_t prg_rom_size;
+    uint32_t prg_ram_size;
     uint32_t chr_rom_size;
     uint32_t chr_ram_size;
 };
@@ -436,6 +437,14 @@ struct NES_Palette
     uint32_t colour[64];
 };
 
+struct NES_RomInfo
+{
+    size_t prg_ram_size;
+    size_t chr_ram_size;
+    bool prg_battery;
+    bool chr_battery; // unused for now, here for furture compat
+};
+
 struct NES_Core
 {
     struct NES_Cpu cpu;
@@ -446,9 +455,15 @@ struct NES_Core
     struct NES_Palette palette;
     uint8_t wram[1024 * 2];
 
-    const uint8_t* rom; /* rom buffer passed into loadrom() */
+    const uint8_t* rom;
     size_t rom_size;
 
+    uint8_t* prg_ram;
+    size_t prg_ram_size;
+
+    uint8_t* chr_ram;
+    size_t chr_ram_size;
+    
     void* pixels;
     uint32_t pixels_stride;
     uint8_t bpp;

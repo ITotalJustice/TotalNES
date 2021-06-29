@@ -19,4 +19,5 @@
     #include "mappers/mapper_001.c"
     #include "mappers/mapper_002.c"
     #include "mappers/mapper_003.c"
+    #include "mappers/mapper_007.c"
 #endif

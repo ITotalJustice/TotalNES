@@ -105,6 +105,8 @@ enum InterruptVector
 
 enum Mirror
 {
+    ONE_SCREEN_LOW,
+    ONE_SCREEN_HIGH,
     HORIZONTAL,
     VERTICAL,
     FOUR_SCREEN,
@@ -116,6 +118,7 @@ struct NES_Core; // fwd
 NES_STATIC void nes_apu_init(struct NES_Core* nes);
 NES_STATIC void nes_ppu_init(struct NES_Core* nes);
 
+NES_STATIC bool nes_mapper_get_prg_chr_ram_size(uint8_t mapper, size_t* prg_size, size_t* chr_size);
 NES_STATIC bool nes_mapper_setup(struct NES_Core* nes, uint8_t mapper, enum Mirror mirror);
 
 NES_FORCE_INLINE void nes_cpu_run(struct NES_Core* nes);
@@ -128,7 +131,7 @@ NES_INLINE void nes_cart_write(struct NES_Core* nes, uint16_t addr, uint8_t valu
 NES_FORCE_INLINE uint8_t nes_cpu_read(struct NES_Core* nes, uint16_t addr);
 NES_FORCE_INLINE void nes_cpu_write(struct NES_Core* nes, uint16_t addr, uint8_t value);
 NES_FORCE_INLINE uint16_t nes_cpu_read16(struct NES_Core* nes, uint16_t addr);
-NES_FORCE_INLINE void nes_cpu_write16(struct NES_Core* nes, uint16_t addr, uint16_t value);
+// NES_FORCE_INLINE void nes_cpu_write16(struct NES_Core* nes, uint16_t addr, uint16_t value);
 
 NES_STATIC void nes_dma(struct NES_Core* nes);
 NES_FORCE_INLINE uint8_t nes_ppu_read(struct NES_Core* nes, uint16_t addr);
@@ -142,7 +145,6 @@ NES_STATIC void nes_joypad_write(struct NES_Core* nes, uint8_t value);
 NES_STATIC uint8_t nes_apu_io_read(struct NES_Core* nes, const uint16_t addr);
 NES_INLINE void nes_apu_io_write(struct NES_Core* nes, const uint16_t addr, const uint8_t value);
 
-NES_FORCE_INLINE void ctrl_set_nmi(struct NES_Core* nes, uint8_t v);
 NES_FORCE_INLINE void status_set_obj_overflow(struct NES_Core* nes, uint8_t v);
 NES_FORCE_INLINE void status_set_obj_hit(struct NES_Core* nes, uint8_t v);
 NES_FORCE_INLINE void status_set_vblank(struct NES_Core* nes, uint8_t v);
